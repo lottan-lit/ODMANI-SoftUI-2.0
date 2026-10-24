@@ -1,0 +1,47 @@
+name: Organizar fontes privadas Soft UI 2.0
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  importar:
+    if: github.repository == 'lottan-lit/ODMANI-SoftUI-2.0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - name: Conferir pacote e extrair fontes revisadas
+        run: |
+          test ! -d android || { echo "Fontes já organizadas; execução única encerrada."; exit 1; }
+          echo '17ad051cf951d311d8d4cea08a3799e8a0758a325be290f9bb4be79d7c0d27b5  ODMANI-SoftUI-2.0-fontes.zip' | sha256sum -c -
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          with zipfile.ZipFile('ODMANI-SoftUI-2.0-fontes.zip') as z:
+              for entry in z.infolist():
+                  p = Path(entry.filename)
+                  assert not p.is_absolute() and '..' not in p.parts
+                  assert p.parts[0] in {'android','web','docs','README.md','.gitignore'}
+                  assert not any(part in {'.git','.gradle','.kotlin','build'} for part in p.parts)
+                  assert p.name != 'local.properties'
+                  assert p.suffix.lower() not in {'.apk','.aab','.jks','.keystore','.pdf'}
+              z.extractall('.')
+          PY
+          chmod +x android/gradlew
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - name: Registrar aplicativo Android nativo
+        run: |
+          git add android .gitignore
+          if ! git diff --cached --quiet; then git commit -m "feat(android): implementar ODMANI Soft UI 2.0 e migração segura"; fi
+      - name: Registrar landing page AUDMANI sem publicar
+        run: |
+          git add web
+          if ! git diff --cached --quiet; then git commit -m "feat(web): criar landing page AUDMANI com distribuição desabilitada"; fi
+      - name: Registrar validação e orientações de distribuição
+        run: |
+          git add docs README.md
+          if ! git diff --cached --quiet; then git commit -m "docs: registrar testes, limites e publicação privada"; fi
+          git push origin HEAD:main
