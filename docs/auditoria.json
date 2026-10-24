@@ -1,0 +1,18 @@
+{
+  "jvm": {
+    "tests": 13,
+    "failures": 0
+  },
+  "sqlite_migration": "passed: v1 real schema → v2; records and table structure retained",
+  "android_migration_test": "compiled, not executed",
+  "navigation": "BottomNav byte-for-byte unchanged",
+  "icon": "original bytes intact; 6% inset each side",
+  "lint": {
+    "errors": 0,
+    "warnings": 11,
+    "types": [
+      "GradleDependency",
+      "MonochromeLauncherIcon"
+    ]
+  }
+}
