@@ -22,7 +22,7 @@ feedbackForm?.addEventListener('submit', event => {
   const message = document.querySelector('#feedback-message').value.trim();
   if (!message) { document.querySelector('#feedback-message').focus(); return; }
   const subject = `ODMANI (BETA) — ${category}`;
-  const body = `Aplicativo: ODMANI (BETA)\nVersão: 2.1.0-alpha03 (6)\nCategoria: ${category}\n\n${message}`;
+  const body = `Aplicativo: ODMANI (BETA)\nVersão: 2.1.0-alpha05 (8)\nCategoria: ${category}\n\n${message}`;
   document.querySelector('#feedback-status').textContent = 'Seu aplicativo de e-mail será aberto. Revise a mensagem e confirme o envio nele. Se não abrir, utilize o endereço de e-mail ao lado.';
   window.location.href = `mailto:studio.47.agencia.co@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 });
