@@ -1,9 +1,10 @@
 {
-  "versionName": "2.2.0-softui01",
-  "versionCode": 5,
-  "channel": "debug-test",
+  "versionName": "2.1.0-alpha03",
+  "versionCode": 6,
+  "channel": "beta-debug",
   "minAndroid": "8.0",
-  "bytes": 11239149,
-  "sha256": "8526752196f8ab5ed9a4a631cba00841d8dd75d5a5ff4e83f9f5d6127546beea",
-  "file": "ODMANI-2.2.0-softui01-debug.apk"
+  "bytes": 11182506,
+  "sha256": "3adfffb4f667f2edab267805a4261f34f5fbc6f2e5ffee5b10c77bd18c650254",
+  "file": "ODMANI-correcoes.apk",
+  "appLabel": "ODMANI"
 }

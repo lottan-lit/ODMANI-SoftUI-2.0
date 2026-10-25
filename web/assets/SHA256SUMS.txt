@@ -1,1 +1,1 @@
-8526752196f8ab5ed9a4a631cba00841d8dd75d5a5ff4e83f9f5d6127546beea  ODMANI-2.2.0-softui01-debug.apk
+3adfffb4f667f2edab267805a4261f34f5fbc6f2e5ffee5b10c77bd18c650254  ODMANI-correcoes.apk
