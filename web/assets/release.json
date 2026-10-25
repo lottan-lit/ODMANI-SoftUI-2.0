@@ -1,0 +1,9 @@
+{
+  "versionName": "2.2.0-softui01",
+  "versionCode": 5,
+  "channel": "debug-test",
+  "minAndroid": "8.0",
+  "bytes": 11239149,
+  "sha256": "8526752196f8ab5ed9a4a631cba00841d8dd75d5a5ff4e83f9f5d6127546beea",
+  "file": "ODMANI-2.2.0-softui01-debug.apk"
+}
