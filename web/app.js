@@ -13,3 +13,16 @@ themeSelect?.addEventListener('change', event => {
   applyTheme(event.target.value);
   try { localStorage.setItem('odmani-site-theme', event.target.value); } catch {}
 });
+
+const feedbackForm = document.querySelector('#feedback-form');
+feedbackForm?.addEventListener('submit', event => {
+  event.preventDefault();
+  if (!feedbackForm.reportValidity()) return;
+  const category = document.querySelector('#feedback-type').value;
+  const message = document.querySelector('#feedback-message').value.trim();
+  if (!message) { document.querySelector('#feedback-message').focus(); return; }
+  const subject = `ODMANI (BETA) — ${category}`;
+  const body = `Aplicativo: ODMANI (BETA)\nVersão: 2.1.0-alpha03 (6)\nCategoria: ${category}\n\n${message}`;
+  document.querySelector('#feedback-status').textContent = 'Seu aplicativo de e-mail será aberto. Revise a mensagem e confirme o envio nele. Se não abrir, utilize o endereço de e-mail ao lado.';
+  window.location.href = `mailto:studio.47.agencia.co@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+});
