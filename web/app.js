@@ -13,5 +13,3 @@ themeSelect?.addEventListener('change', event => {
   applyTheme(event.target.value);
   try { localStorage.setItem('odmani-site-theme', event.target.value); } catch {}
 });
-// Distribution is locked until a signed, approved release is explicitly configured.
-// No debug APK or test build may be linked from this page.
