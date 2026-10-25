@@ -20,7 +20,7 @@ class VisualTokensTest {
 
     @Test
     fun textAndButtonContrastInBothThemes() {
-        for (p in listOf(VisualTokens.Light, VisualTokens.Dark)) {
+        for (p in listOf(VisualTokens.Light, VisualTokens.Dark, VisualTokens.Graphite)) {
             assertTrue(contrast(p.text, p.background) >= 4.5)
             assertTrue(contrast(p.muted, p.background) >= 4.5)
             assertTrue(contrast(p.muted, p.surface) >= 4.5)
@@ -30,8 +30,8 @@ class VisualTokensTest {
 
     @Test
     fun exactBackgroundsAndSeparateSurfaces() {
-        assertEquals(Color(0xffF5F6F8), VisualTokens.Light.background)
-        assertEquals(Color(0xff141416), VisualTokens.Dark.background)
+        assertEquals(Color(0xffFAF9F6), VisualTokens.Light.background)
+        assertEquals(Color(0xff000000), VisualTokens.Dark.background)
         assertNotEquals(VisualTokens.Dark.background, VisualTokens.Dark.surface)
     }
 }

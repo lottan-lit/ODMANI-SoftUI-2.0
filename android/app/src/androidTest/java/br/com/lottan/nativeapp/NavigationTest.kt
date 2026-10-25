@@ -34,7 +34,7 @@ class NavigationTest {
                 .isNotEmpty()
         }
         compose.onNodeWithContentDescription("Biblioteca").performClick()
-        compose.onNodeWithText("▥ Pastas e categorias").performClick()
+        compose.onNodeWithContentDescription("Ver todas as pastas").performClick()
         compose.onNodeWithText("Organizar PDFs").assertIsDisplayed()
     }
 }

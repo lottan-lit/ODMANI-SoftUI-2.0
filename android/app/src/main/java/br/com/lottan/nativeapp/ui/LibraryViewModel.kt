@@ -10,10 +10,18 @@ import kotlinx.coroutines.launch
 
 class LibraryViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as LottanApplication
+    val workspaceRepository = WorkspaceRepository(application)
+    val globalComfort = workspaceRepository.comfort("global").stateIn(viewModelScope, SharingStarted.Eagerly, ReaderComfort())
+    val workspace = workspaceRepository.state.stateIn(viewModelScope, SharingStarted.Eagerly, Workspace())
+    fun saveSpace(id: String, value: DocumentSpace) = run { workspaceRepository.space(id, value) }
+    val catalog = MutableStateFlow(EditorialCatalog())
     val repository = app.library
     val preferences = app.preferences
     val books =
         repository.books.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val sessions = repository.dao.sessions().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val uniquePages = repository.dao.uniquePages().stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+    val memberships = repository.dao.memberships().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val groups =
         repository.groups.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val days =
@@ -21,9 +29,12 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     val prefs = preferences.state.stateIn(viewModelScope, SharingStarted.Eagerly, Preferences())
     val ready = MutableStateFlow(false)
     val busy = MutableStateFlow(false)
+    val duplicate = MutableStateFlow<Pair<Uri, String>?>(null)
+    val coverRevision = MutableStateFlow(0)
     val message = MutableStateFlow<String?>(null)
 
     init {
+        run { catalog.value = loadEditorialCatalog(application) }
         viewModelScope.launch {
             preferences.state.first()
             ready.value = true
@@ -41,12 +52,14 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun import(uri: Uri) {
+    fun import(uri: Uri, allowDuplicate: Boolean = false) {
         run {
             busy.value = true
             try {
-                repository.import(uri)
+                repository.import(uri, allowDuplicate)
                 message.value = "PDF importado. Toque no arquivo para ler."
+            } catch (e: DuplicatePdfException) {
+                duplicate.value = uri to e.existingId
             } catch (e: Exception) {
                 throw IllegalArgumentException(
                     e.message?.takeIf { it.contains("200 MB") }
@@ -58,6 +71,8 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
             }
         }
     }
+
+    suspend fun clearThumbnailCache() { app.thumbnails.clear(); message.value = "Cache de miniaturas limpo." }
 
     fun remove(id: String) = run {
         repository.remove(id)

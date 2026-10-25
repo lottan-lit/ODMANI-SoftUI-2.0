@@ -3,6 +3,12 @@ package br.com.lottan.nativeapp.domain
 import java.time.*
 
 object ReadingRules {
+    fun activeMillis(start: Long, end: Long, interaction: Long): Long =
+        (minOf(end, interaction + 120000L) - start).coerceIn(0L, (end - start).coerceAtLeast(0L))
+
+    fun chartMaximum(values: List<Long>, time: Boolean): Long =
+        (values.maxOrNull() ?: 0L).coerceAtLeast(if (time) 1800000L else 30L)
+
     const val MAX_PDF_BYTES = 200L * 1024 * 1024
 
     fun title(name: String) =

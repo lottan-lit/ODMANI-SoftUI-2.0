@@ -163,46 +163,24 @@ fun DemoReader(
 
 @Composable
 fun ThemePicker(theme: String, select: (String) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(top = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        listOf("light" to "Claro", "dark" to "Escuro", "system" to "Seguir sistema").forEach {
-            (key, label) ->
-            val chosen = theme == key
-            Column(
-                Modifier.weight(1f)
-                    .fillMaxHeight()
-                    .glass(LocalDark.current, 12)
-                    .clickable { select(key) }
-                    .padding(10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Box(
-                    Modifier.fillMaxWidth()
-                        .height(48.dp)
-                        .background(
-                            if (key == "dark") VisualTokens.Dark.surface
-                            else VisualTokens.Light.secondary,
-                            androidx.compose.foundation.shape.RoundedCornerShape(7.dp),
-                        )
-                ) {
-                    Column(Modifier.padding(8.dp)) {
-                        repeat(3) {
-                            Box(
-                                Modifier.fillMaxWidth(if (it == 2) .5f else .8f)
-                                    .height(3.dp)
-                                    .background(
-                                        if (key == "dark") VisualTokens.Dark.muted
-                                        else VisualTokens.Light.surface
-                                    )
-                            )
-                            Spacer(Modifier.height(5.dp))
+    Column(Modifier.fillMaxWidth().padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        listOf("dark" to "Preto absoluto", "graphite" to "Grafite", "light" to "Claro off-white", "system" to "Automático").chunked(2).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                row.forEach { (key, label) ->
+                    val palette = when (key) { "dark" -> VisualTokens.Dark; "graphite" -> VisualTokens.Graphite; else -> VisualTokens.Light }
+                    Column(Modifier.weight(1f).glass(LocalDark.current, 12).clickable { select(key) }.padding(12.dp)) {
+                        Box(Modifier.fillMaxWidth().height(64.dp).background(palette.background, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))) {
+                            Column(Modifier.padding(12.dp)) {
+                                repeat(3) { index ->
+                                    Box(Modifier.fillMaxWidth(if (index == 2) .5f else .85f).height(3.dp).background(palette.muted))
+                                    Spacer(Modifier.height(7.dp))
+                                }
+                            }
                         }
+                        Text(label, Modifier.padding(top = 8.dp), fontSize = 12.sp, color = Ink)
+                        Text(if (theme == key) "✓ Selecionado" else "Selecionar", fontSize = 12.sp, color = Muted)
                     }
                 }
-                Text(label, Modifier.padding(top = 9.dp), fontSize = 12.sp, color = Ink)
-                Text(if (chosen) "✓" else "○", fontSize = 13.sp, color = Ink)
             }
         }
     }

@@ -37,10 +37,11 @@ class MigrationTest {
         }
         val migrated =
             Room.databaseBuilder(context, LottanDatabase::class.java, name)
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
         try {
             val book = migrated.library().book("document")!!
+            assertEquals(FolderBook("folder", "document"), migrated.library().memberships().first().single())
             assertEquals("personal", book.origin)
             assertEquals(57, book.page)
             assertTrue(book.completed)

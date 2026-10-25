@@ -21,7 +21,7 @@ import java.util.Locale
 /** Reusable surfaces; no blur or filter is ever applied to PDF pixels. */
 @Composable
 fun SoftCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier.glass(LocalDark.current, 20).padding(16.dp), content = content)
+    Column(modifier.glass(LocalDark.current, 24).padding(16.dp), content = content)
 }
 
 @Composable
@@ -58,7 +58,7 @@ fun SoftIconButton(icon: String, label: String, action: () -> Unit) {
 
 @Composable
 fun ReadingProgress(book: Book) {
-    val fraction = ((book.page + 1f) / book.pages.coerceAtLeast(1)).coerceIn(0f, 1f)
+    val fraction = ((if (book.lastOpened == 0L) 0f else book.page + 1f) / book.pages.coerceAtLeast(1)).coerceIn(0f, 1f)
     LinearProgressIndicator(
         progress = { fraction },
         modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape),
@@ -69,7 +69,7 @@ fun ReadingProgress(book: Book) {
         Modifier.fillMaxWidth().padding(top = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Caption("${book.page + 1} de ${book.pages}")
+        Caption("${if (book.lastOpened == 0L) 0 else book.page + 1} de ${book.pages}")
         Caption("${(fraction * 100).toInt()}%")
     }
 }
@@ -110,14 +110,19 @@ fun LibrarySection(
     content()
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SoftHome(
     books: List<Book>,
     busy: Boolean,
     importPdf: () -> Unit,
     go: (String) -> Unit,
+    workspace: Workspace,
+    days: List<Day>,
+    vm: LibraryViewModel,
     restart: (String) -> Unit,
 ) {
+    val preferences by vm.prefs.collectAsState()
     Page {
         Row(
             Modifier.fillMaxWidth().padding(bottom = 16.dp),
@@ -134,7 +139,7 @@ fun SoftHome(
             Icon("search", "Buscar") { go("search") }
             Icon("menu", "Abrir menu") { go("menu") }
         }
-        val doc = books.maxByOrNull { it.lastOpened.takeIf { n -> n > 0 } ?: it.added }
+        val doc = books.firstOrNull { it.id == workspace.main } ?: books.maxByOrNull { it.lastOpened.takeIf { n -> n > 0 } ?: it.added }
         if (doc != null) {
             Text(
                 "Continuar lendo",
@@ -149,6 +154,7 @@ fun SoftHome(
                         maxWidth < 310.dp ||
                             androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f
                     if (narrow) {
+                        Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             PdfCover(doc, Modifier.width(76.dp).height(112.dp))
                             Spacer(Modifier.width(12.dp))
@@ -161,10 +167,11 @@ fun SoftHome(
                         ReadingProgress(doc)
                         Spacer(Modifier.height(12.dp))
                         SoftButton(
-                            if (doc.page >= doc.pages - 1) "▶  Ler novamente" else "▶  Continuar"
+                            if (doc.completed) "▶  Ler novamente" else "▶  Continuar"
                         ) {
-                            if (doc.page >= doc.pages - 1) restart(doc.id)
+                            if (doc.completed) restart(doc.id)
                             else go("reader/${doc.id}")
+                        }
                         }
                     } else
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -176,10 +183,10 @@ fun SoftHome(
                                 ReadingProgress(doc)
                                 Spacer(Modifier.height(12.dp))
                                 SoftButton(
-                                    if (doc.page >= doc.pages - 1) "▶  Ler novamente"
+                                    if (doc.completed) "▶  Ler novamente"
                                     else "▶  Continuar"
                                 ) {
-                                    if (doc.page >= doc.pages - 1) restart(doc.id)
+                                    if (doc.completed) restart(doc.id)
                                     else go("reader/${doc.id}")
                                 }
                             }
@@ -200,8 +207,12 @@ fun SoftHome(
                     Modifier.padding(vertical = 16.dp),
                 )
                 SoftButton("＋ Importar PDF", !busy, importPdf)
+                TextButton({ go("explore") }) { Text("Explorar a Lottan") }
             }
         }
+        if (preferences.showGoals) { Spacer(Modifier.height(24.dp)); GoalPanel(workspace, days) { go("goals") } }
+        val pinned = books.filter { it.id in workspace.pinned }
+        if (pinned.isNotEmpty()) LibrarySection("Fixados", "Seus documentos favoritos", { go("library?origin=pinned") }) { BookShelf(pinned.take(3)) { go("book/$it") } }
         val official = books.filter { it.origin == "lottan_verified" }
         LibrarySection(
             "Biblioteca Lottan",
@@ -213,38 +224,16 @@ fun SoftHome(
                     "Conteúdo editorial em breve",
                     "Nenhum documento oficial da parceira disponível neste celular.",
                 )
-            else BookShelf(official) { go("book/$it") }
+            else BookShelf(official.take(3)) { go("book/$it") }
         }
-        val personal = books.filter { it.origin != "lottan_verified" }
-        LibrarySection(
-            "PDFs pessoais",
-            "Seus arquivos, organizados do seu jeito.",
-            { go("library?origin=personal") },
-        ) {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                item("import") {
-                    Column(
-                        Modifier.width(104.dp)
-                            .heightIn(min = 172.dp)
-                            .glass(LocalDark.current)
-                            .clickable(enabled = !busy, onClick = importPdf)
-                            .padding(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        Text("＋", color = Ink, fontSize = 28.sp)
-                        Text(
-                            if (busy) "Importando…" else "Importar PDF",
-                            color = Ink,
-                            fontSize = 14.sp,
-                        )
-                    }
-                }
-                items(personal, key = { it.id }) { b -> PersonalBookCard(b) { go("book/${b.id}") } }
-            }
-            if (personal.isEmpty())
-                Caption("Os PDFs que você importar aparecerão aqui.", Modifier.padding(top = 12.dp))
+        val personal = books.filter { it.origin != "lottan_verified" }.sortedByDescending { maxOf(it.added, it.lastOpened) }
+        FlowRow(Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("PDFs pessoais", Modifier.widthIn(min = 120.dp), color = Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            TextButton(importPdf, enabled = !busy, contentPadding = PaddingValues(horizontal = 8.dp)) { Text("+ Adicionar", fontSize = 12.sp) }
+            TextButton({ go("library?origin=personal") }, contentPadding = PaddingValues(horizontal = 8.dp)) { Text("Ver tudo →", fontSize = 12.sp, color = Muted) }
         }
+        if (personal.isEmpty()) Caption("Adicione seu primeiro PDF pelo botão + Adicionar.")
+        else BookShelf(personal.take(3)) { go("book/$it") }
         Caption("Desenvolvido pela AUDMANI", Modifier.padding(top = 24.dp, bottom = 8.dp))
     }
 }
@@ -257,24 +246,26 @@ private fun ContinueTitle(book: Book) {
         fontSize = 16.sp,
         lineHeight = 21.sp,
         fontWeight = FontWeight.Medium,
-        maxLines = 2,
+        maxLines = if (androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f) 1 else 2,
         overflow = TextOverflow.Ellipsis,
     )
 }
 
 @Composable
 fun PersonalBookCard(book: Book, open: () -> Unit) {
-    Column(Modifier.width(104.dp).clickable(onClick = open)) {
-        PdfCover(book, Modifier.width(104.dp).height(144.dp))
+    val enlarged = androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f
+    val width = if (enlarged) 180.dp else 104.dp
+    Column(Modifier.width(width).clickable(onClick = open)) {
+        PdfCover(book, Modifier.width(width).height(if (enlarged) 200.dp else 144.dp))
         Text(
             ReadingRules.title(book.name),
             Modifier.padding(top = 8.dp),
             color = Ink,
             fontSize = 12.sp,
-            maxLines = 2,
+            maxLines = if (androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f) 1 else 2,
             overflow = TextOverflow.Ellipsis,
         )
-        Caption("${book.page+1} de ${book.pages}")
+        Caption("${if (book.lastOpened == 0L) 0 else book.page+1} de ${book.pages}")
     }
 }
 
@@ -283,51 +274,41 @@ fun NativeBookDetails(
     book: Book?,
     back: () -> Unit,
     go: (String) -> Unit,
+    vm: LibraryViewModel,
+    workspace: Workspace,
     restart: (String) -> Unit,
 ) {
     Page {
-        Top("Documento", back, { go("menu") })
+        var options by remember { mutableStateOf(false) }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Icon("back", "Voltar", back)
+            Box {
+                TextButton({ options = true }, Modifier.semantics { contentDescription = "Opções do documento" }) { Text("⋮", color = Ink, fontSize = 24.sp) }
+                DropdownMenu(options, { options = false }) {
+                    if (book != null) {
+                        DropdownMenuItem(text = { Text("Adicionar à pasta") }, onClick = { options = false; go("organize") })
+                        DropdownMenuItem(text = { Text("Remover da biblioteca") }, onClick = { options = false; go("remove/${book.id}") })
+                    }
+                }
+            }
+        }
         if (book == null) {
             EmptyLibraryState("PDF indisponível", "Este documento pode ter sido removido.")
             return@Page
         }
-        PdfCover(
-            book,
-            Modifier.align(Alignment.CenterHorizontally)
-                .padding(vertical = 20.dp)
-                .widthIn(max = 200.dp)
-                .fillMaxWidth()
-                .height(272.dp),
-        )
-        Text(
-            ReadingRules.title(book.name),
-            color = Ink,
-            fontSize = 24.sp,
-            lineHeight = 30.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Caption(
-            if (book.origin == "lottan_verified") "Parceira editorial — Lottan"
-            else "PDF pessoal · salvo neste celular",
-            Modifier.padding(top = 8.dp, bottom = 20.dp),
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ReadingStatsCard("Páginas", "${book.pages}", Modifier.weight(1f))
-            ReadingStatsCard("Formato", "PDF", Modifier.weight(1f))
-            ReadingStatsCard(
-                "Tamanho",
-                "${"%.1f".format(book.bytes/1048576.0)} MB",
-                Modifier.weight(1f),
-            )
+        Row(Modifier.fillMaxWidth().padding(vertical = 20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            PdfCover(book, Modifier.width(112.dp).height(164.dp))
+            Column(Modifier.weight(1f)) {
+                Text(ReadingRules.title(book.name), color = Ink, fontSize = 22.sp, maxLines = 5, overflow = TextOverflow.Ellipsis)
+                Caption(if (book.origin == "lottan_verified") "Lottan" else "PDF pessoal · neste celular", Modifier.padding(vertical = 8.dp))
+                SoftButton(if (book.completed) "Ler novamente" else if (book.lastOpened == 0L) "Ler" else "Continuar") {
+                    if (book.completed) restart(book.id) else go("reader/${book.id}")
+                }
+            }
         }
+        Caption("${book.pages} páginas  ·  PDF  ·  ${"%.1f".format(book.bytes / 1048576.0)} MB")
         Spacer(Modifier.height(20.dp))
         ReadingProgress(book)
-        Spacer(Modifier.height(16.dp))
-        SoftButton(
-            if (book.page >= book.pages - 1) "▶  Ler novamente" else "▶  Continuar leitura"
-        ) {
-            if (book.page >= book.pages - 1) restart(book.id) else go("reader/${book.id}")
-        }
         Row(
             Modifier.fillMaxWidth().padding(top = 24.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -335,6 +316,7 @@ fun NativeBookDetails(
             SoftIconButton("library", "Organizar") { go("organize") }
             SoftIconButton("close", "Remover") { go("remove/${book.id}") }
         }
+        DocumentActions(book, vm, workspace, go)
         if (book.completed)
             Caption(
                 "Leitura concluída anteriormente. Seu histórico está preservado.",
@@ -358,9 +340,14 @@ fun SoftStats(
     groups: List<Group>,
     back: () -> Unit,
     menu: () -> Unit,
+    workspace: Workspace,
+    vm: LibraryViewModel,
+    goals: () -> Unit,
 ) {
+    val sessions by vm.sessions.collectAsState()
+    val unique by vm.uniquePages.collectAsState()
     Page {
-        Top("Estatísticas", back, menu)
+        Top("Estatísticas", back, menu, showMenu = true)
         val ms = days.sumOf { it.millis }
         Row(
             Modifier.padding(vertical = 16.dp),
@@ -368,7 +355,7 @@ fun SoftStats(
         ) {
             ReadingStatsCard(
                 "Tempo de leitura",
-                "${ms/3600000}h ${ms%3600000/60000}min",
+                if (ms < 60000) "${ms / 1000}s" else "${ms/3600000}h ${ms%3600000/60000}min",
                 Modifier.weight(1f),
             )
             ReadingStatsCard(
@@ -377,12 +364,15 @@ fun SoftStats(
                 Modifier.weight(1f),
             )
         }
+        var metric by remember { mutableStateOf("Tempo") }
         SoftCard(Modifier.fillMaxWidth()) {
+            Segments(listOf("Páginas", "Tempo"), metric) { metric = it }
             Text("Últimos 7 dias", color = Ink, fontWeight = FontWeight.Medium)
             val week = (6 downTo 0).map { LocalDate.now().minusDays(it.toLong()) }
             val durations =
-                week.map { date -> days.firstOrNull { it.date == date.toString() }?.millis ?: 0L }
-            val maximum = durations.maxOrNull()?.coerceAtLeast(1L) ?: 1L
+                week.map { date -> days.firstOrNull { it.date == date.toString() }?.let { if (metric == "Tempo") it.millis else it.visits } ?: 0L }
+            val maximum = ReadingRules.chartMaximum(durations, metric == "Tempo")
+            Caption(if (metric == "Tempo") "Escala: 0–${maximum / 60000} minutos" else "Escala: 0–$maximum páginas visitadas")
             Row(
                 Modifier.fillMaxWidth().padding(top = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -390,7 +380,7 @@ fun SoftStats(
                 week.forEachIndexed { index, date ->
                     Column(
                         Modifier.weight(1f).semantics {
-                            contentDescription = "$date: ${durations[index]/60000} minutos"
+                            contentDescription = if (metric == "Tempo") "$date: ${durations[index]/60000} minutos" else "$date: ${durations[index]} páginas visitadas"
                         },
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
@@ -401,10 +391,10 @@ fun SoftStats(
                             Box(
                                 Modifier.width(16.dp)
                                     .height(
-                                        (if (durations[index] == 0L) 3f
+                                        (if (durations[index] == 0L) 0f
                                             else
                                                 (durations[index].toFloat() / maximum * 88f)
-                                                    .coerceAtLeast(8f))
+                                                    .coerceAtLeast(0f))
                                             .dp
                                     )
                                     .clip(RoundedCornerShape(6.dp))
@@ -427,8 +417,11 @@ fun SoftStats(
             if (durations.all { it == 0L })
                 Caption("Nenhuma leitura registrada nesta semana.", Modifier.padding(top = 12.dp))
         }
-        Spacer(Modifier.height(20.dp))
-        HeatMap(days)
+        Spacer(Modifier.height(24.dp))
+        GoalPanel(workspace, days, goals)
+        Spacer(Modifier.height(24.dp))
+        HeatMap(days, sessions)
+        Caption("$unique páginas únicas com permanência registrada nesta versão.", Modifier.padding(top = 12.dp))
         Row(
             Modifier.padding(vertical = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -477,7 +470,7 @@ fun SoftStats(
                     }
         }
         Caption(
-            "O tempo é registrado somente com uma página renderizada e o leitor em primeiro plano. Páginas revisitadas também contam. Dados locais neste celular.",
+            "O tempo é registrado somente com uma página renderizada e o leitor em primeiro plano. Nas novas leituras, cada página conta uma vez por dia, após 5 segundos. Dados locais neste celular.",
             Modifier.padding(top = 20.dp),
         )
     }

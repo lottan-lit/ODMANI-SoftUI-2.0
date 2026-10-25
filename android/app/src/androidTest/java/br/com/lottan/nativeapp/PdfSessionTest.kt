@@ -17,8 +17,8 @@ class PdfSessionTest {
         val cache = InstrumentationRegistry.getInstrumentation().targetContext.cacheDir
         val valid = File.createTempFile("lottan-valid-", ".pdf", cache)
         val invalid = File.createTempFile("lottan-invalid-", ".pdf", cache)
-        val session = PdfSession(valid)
-        val broken = PdfSession(invalid)
+        val session = PdfSession(valid, InstrumentationRegistry.getInstrumentation().targetContext)
+        val broken = PdfSession(invalid, InstrumentationRegistry.getInstrumentation().targetContext)
         try {
             val document = PdfDocument()
             try {

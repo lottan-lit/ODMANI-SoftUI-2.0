@@ -26,7 +26,7 @@ fun PdfSettings(vm: LibraryViewModel, prefs: Preferences, back: () -> Unit, menu
             Caption("Preferências · ${prefs.rotation}° · ${"%.0f".format(prefs.zoom*100)}%")
         }
         Caption(
-            "Estas preferências são aplicadas ao abrir seus PDFs. A navegação exibe uma página por vez; a direção escolhida define o gesto para trocar de página."
+            "A página única usa controles explícitos. O modo Vertical permite rolagem contínua. Ajustes de zoom e conforto também podem ser salvos por documento."
         )
         Glass(Modifier.padding(top = 18.dp)) {
             Text("Ajuste da página", color = Ink)
@@ -35,14 +35,13 @@ fun PdfSettings(vm: LibraryViewModel, prefs: Preferences, back: () -> Unit, menu
                 listOf("Largura", "Página inteira"),
                 if (prefs.fit == "width") "Largura" else "Página inteira",
             ) { v ->
-                vm.run { vm.preferences.fit(if (v == "Largura") "width" else "page") }
+                vm.run { vm.preferences.fit(if (v == "Largura") "width" else "page"); vm.workspaceRepository.comfort("global", vm.globalComfort.value.copy(fit = if (v == "Largura") "width" else "page")) }
             }
             Text("Navegação", color = Ink)
             Segments(
-                listOf("Vertical", "Horizontal", "Uma página"),
+                listOf("Uma página", "Vertical"),
                 when (prefs.direction) {
                     "vertical" -> "Vertical"
-                    "horizontal" -> "Horizontal"
                     else -> "Uma página"
                 },
             ) { v ->
@@ -50,7 +49,6 @@ fun PdfSettings(vm: LibraryViewModel, prefs: Preferences, back: () -> Unit, menu
                     vm.preferences.direction(
                         when (v) {
                             "Vertical" -> "vertical"
-                            "Horizontal" -> "horizontal"
                             else -> "single"
                         }
                     )
@@ -82,7 +80,7 @@ fun PdfSettings(vm: LibraryViewModel, prefs: Preferences, back: () -> Unit, menu
             Text("Zoom   ${"%.0f".format(prefs.zoom*100)}%", color = Ink)
             Slider(
                 prefs.zoom,
-                { v -> vm.run { vm.preferences.zoom(v) } },
+                { v -> vm.run { vm.preferences.zoom(v); vm.workspaceRepository.comfort("global", vm.globalComfort.value.copy(zoom = v)) } },
                 valueRange = .75f..1.5f,
                 steps = 14,
             )
@@ -101,49 +99,33 @@ fun ReadingSettings(
     menu: () -> Unit,
     tryDemo: () -> Unit,
 ) {
+    val comfort by vm.globalComfort.collectAsState()
     Page {
         Top("Aparência e leitura", back, menu)
-        SoftCard(Modifier.fillMaxWidth().padding(bottom = 20.dp)) {
-            Text("Tema da interface", color = Ink)
-            ThemePicker(prefs.theme, vm::theme)
-            Caption("O PDF mantém suas cores e diagramação originais.")
+        SoftCard(Modifier.fillMaxWidth()) {
+            Text("Tamanho do texto da interface", color = Ink)
+            Slider(prefs.textSize, { value -> vm.run { vm.preferences.text(value) } }, valueRange = 16f..24f)
+            Caption("O tamanho respeita também a configuração de fonte do Android. PDFs mantêm sua diagramação.")
         }
-        Glass {
-            Text(
-                "O mesmo céu, de outros anos, ainda parecia distante, mas estranhamente familiar.",
-                fontFamily = FontFamily.Serif,
-                fontSize = prefs.textSize.sp,
-                lineHeight = (prefs.textSize * prefs.lineHeight).sp,
-                color = Ink,
-            )
-        }
-        Glass(Modifier.padding(vertical = 20.dp)) {
-            Text("Tamanho do texto   ${prefs.textSize.toInt()}sp", color = Ink)
-            Slider(
-                prefs.textSize,
-                { v -> vm.run { vm.preferences.text(v) } },
-                valueRange = 16f..26f,
-                steps = 9,
-            )
-            Text("Espaçamento entre linhas   ${"%.1f".format(prefs.lineHeight)}", color = Ink)
-            Slider(
-                prefs.lineHeight,
-                { v -> vm.run { vm.preferences.spacing(v) } },
-                valueRange = 1.3f..2f,
-                steps = 6,
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Ocultar controles ao tocar", fontSize = 14.sp, color = Ink)
-                    Caption("Toque novamente para mostrar")
-                }
-                Switch(prefs.hideControls, { v -> vm.run { vm.preferences.hide(v) } })
-            }
-        }
-        Caption(
-            "Tamanho e espaçamento valem para o texto de demonstração. PDFs preservam a diagramação original; use zoom no leitor."
-        )
         Spacer(Modifier.height(20.dp))
-        Primary("Experimentar na leitura", tryDemo)
+        SoftCard(Modifier.fillMaxWidth()) {
+            Text("Conforto global dos PDFs", color = Ink)
+            Caption("Documentos com preferências próprias mantêm suas escolhas.")
+            listOf("Preto", "Grafite", "Cinza", "Papel", "Sépia", "Branco").chunked(3).forEach { row ->
+                Segments(row, comfort.background) { vm.run { vm.workspaceRepository.comfort("global", comfort.copy(background = it)) } }
+            }
+            Text("Filtro de papel", color = Ink)
+            listOf("Neutro", "Creme", "Off-white", "Sépia", "Rosado").chunked(3).forEach { row ->
+                Segments(row, comfort.filter) { vm.run { vm.workspaceRepository.comfort("global", comfort.copy(filter = it)) } }
+            }
+            Slider(comfort.intensity, { value -> vm.run { vm.workspaceRepository.comfort("global", comfort.copy(intensity = value)) } }, valueRange = 0f..0.7f)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(comfort.keepAwake, { value -> vm.run { vm.workspaceRepository.comfort("global", comfort.copy(keepAwake = value)) } }); Text("Manter tela ativa", color = Ink)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(prefs.hideControls, { value -> vm.run { vm.preferences.hide(value) } }); Text("Alternar controles ao tocar", color = Ink)
+            }
+            TextButton({ vm.run { vm.workspaceRepository.comfort("global", br.com.lottan.nativeapp.data.ReaderComfort()) } }) { Text("Restaurar conforto global") }
+        }
     }
 }

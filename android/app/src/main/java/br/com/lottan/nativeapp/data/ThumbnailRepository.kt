@@ -14,7 +14,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /** Original first-page pixels only. No titles, overlays, crops, tint or theme-dependent filters. */
-class ThumbnailRepository(context: Context, private val library: LibraryRepository) {
+class ThumbnailRepository(private val context: Context, private val library: LibraryRepository) {
     private val directory = File(context.cacheDir, "pdf-covers").apply { mkdirs() }
     private val gate = Mutex()
     private val memory =
@@ -47,6 +47,7 @@ class ThumbnailRepository(context: Context, private val library: LibraryReposito
                     }
                     disk.delete()
                 }
+                PdfValidation.check(context, source)
                 val bitmap =
                     ParcelFileDescriptor.open(source, ParcelFileDescriptor.MODE_READ_ONLY).use { fd
                         ->
@@ -94,6 +95,10 @@ class ThumbnailRepository(context: Context, private val library: LibraryReposito
                 bitmap
             }
         }
+
+    suspend fun clear() = withContext(Dispatchers.IO) {
+        gate.withLock { memory.evictAll(); directory.listFiles()?.forEach { check(it.delete() || !it.exists()) } }
+    }
 
     suspend fun evict(id: String) =
         withContext(Dispatchers.IO) {

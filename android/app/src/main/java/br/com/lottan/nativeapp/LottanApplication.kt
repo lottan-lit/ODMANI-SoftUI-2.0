@@ -11,7 +11,7 @@ class LottanApplication : Application() {
         )
     val database by lazy {
         Room.databaseBuilder(this, LottanDatabase::class.java, "lottan.db")
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .build()
     }
     val library by lazy { LibraryRepository(this, database) }

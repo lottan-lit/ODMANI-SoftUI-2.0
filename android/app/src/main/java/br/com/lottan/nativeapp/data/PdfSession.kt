@@ -12,7 +12,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /** PdfRenderer is serialized. Only requested pages are rendered; cache is bounded to 24 MiB. */
-class PdfSession(private val file: File) {
+class PdfSession(private val file: File, private val context: android.content.Context) {
     private val mutex = Mutex()
     private var fd: ParcelFileDescriptor? = null
     private var renderer: PdfRenderer? = null
@@ -25,6 +25,7 @@ class PdfSession(private val file: File) {
         withContext(Dispatchers.IO) {
             mutex.withLock {
                 if (renderer == null) {
+                    PdfValidation.check(context, file)
                     fd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
                     try {
                         renderer = PdfRenderer(fd!!)
@@ -73,10 +74,13 @@ class PdfSession(private val file: File) {
         withContext(Dispatchers.IO) {
             mutex.withLock {
                 cache.evictAll()
-                renderer?.close()
+                val closing = renderer
                 renderer = null
-                fd?.close()
-                fd = null
+                try { closing?.close() } finally {
+                    val descriptor = fd
+                    fd = null
+                    descriptor?.close()
+                }
             }
         }
 }

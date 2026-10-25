@@ -23,8 +23,9 @@ val Muted: Color
     @Composable get() = LocalVisual.current.muted
 
 @Composable
-fun LottanTheme(dark: Boolean, content: @Composable () -> Unit) {
-    val p = VisualTokens.palette(dark)
+fun LottanTheme(dark: Boolean, graphite: Boolean = false, uiScale: Float = 1f, highContrast: Boolean = false, content: @Composable () -> Unit) {
+    val basePalette = if (graphite) VisualTokens.Graphite else VisualTokens.palette(dark)
+    val p = if (highContrast) basePalette.copy(muted = basePalette.text, border = basePalette.text.copy(alpha = .45f)) else basePalette
     val base = if (dark) darkColorScheme() else lightColorScheme()
     val scheme =
         base.copy(
@@ -97,7 +98,9 @@ fun LottanTheme(dark: Boolean, content: @Composable () -> Unit) {
                     lineHeight = 18.sp,
                 ),
         )
-    CompositionLocalProvider(LocalDark provides dark, LocalVisual provides p) {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    CompositionLocalProvider(LocalDark provides dark, LocalVisual provides p,
+        androidx.compose.ui.platform.LocalDensity provides Density(density.density, density.fontScale * uiScale)) {
         MaterialTheme(colorScheme = scheme, typography = type, content = content)
     }
 }
@@ -155,6 +158,37 @@ fun Glyph(name: String, modifier: Modifier = Modifier, tint: Color = Ink) {
             )
         }
         when (name) {
+            "pin" -> {
+                path(9f to 3f, 15f to 3f, 14f to 9f, 18f to 13f, 6f to 13f, 10f to 9f, closed = true)
+                line(12f, 13f, 12f, 21f)
+            }
+            "book-check" -> {
+                path(12f to 6f, 8f to 4f, 3f to 4f, 3f to 18f, 8f to 18f, 12f to 20f, 12f to 6f, 16f to 4f, 21f to 4f, 21f to 11f)
+                path(15f to 16f, 18f to 19f, 22f to 14f)
+            }
+            "add" -> { line(12f, 4f, 12f, 20f); line(4f, 12f, 20f, 12f) }
+            "folder" -> path(3f to 6f, 9f to 6f, 11f to 9f, 21f to 9f, 21f to 20f, 3f to 20f, closed = true)
+            "grid" -> {
+                listOf(4f to 4f, 14f to 4f, 4f to 14f, 14f to 14f).forEach { (x, y) ->
+                    path(x to y, x + 6f to y, x + 6f to y + 6f, x to y + 6f, closed = true)
+                }
+            }
+            "list" -> { line(8f, 6f, 21f, 6f); line(8f, 12f, 21f, 12f); line(8f, 18f, 21f, 18f); line(3f, 6f, 4f, 6f); line(3f, 12f, 4f, 12f); line(3f, 18f, 4f, 18f) }
+            "more" -> { listOf(5f, 12f, 19f).forEach { y -> drawCircle(tint, 1.5f * sx, Offset(12f * sx, y * sy)) } }
+            "edit" -> {
+                path(4f to 16f, 15f to 5f, 19f to 9f, 8f to 20f, 4f to 20f, closed = true)
+                line(13f, 7f, 17f, 11f)
+            }
+            "trash" -> {
+                line(4f, 6f, 20f, 6f); path(7f to 6f, 8f to 21f, 16f to 21f, 17f to 6f)
+                path(9f to 6f, 9f to 3f, 15f to 3f, 15f to 6f); line(10f, 10f, 10f, 17f); line(14f, 10f, 14f, 17f)
+            }
+            "sliders" -> {
+                line(3f, 6f, 21f, 6f); line(3f, 12f, 21f, 12f); line(3f, 18f, 21f, 18f)
+                line(8f, 3f, 8f, 9f); line(16f, 9f, 16f, 15f); line(10f, 15f, 10f, 21f)
+            }
+            "up" -> path(6f to 15f, 12f to 9f, 18f to 15f)
+            "down" -> path(6f to 9f, 12f to 15f, 18f to 9f)
             "home" ->
                 path(
                     4f to 10f,
@@ -233,7 +267,7 @@ fun Modifier.semanticsLabel(label: String) =
     this.then(Modifier.semantics { this.contentDescription = label })
 
 @Composable
-fun Top(title: String, back: (() -> Unit)?, menu: () -> Unit) {
+fun Top(title: String, back: (() -> Unit)?, menu: () -> Unit, showMenu: Boolean = back == null) {
     Row(
         Modifier.fillMaxWidth().padding(bottom = 22.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -249,7 +283,7 @@ fun Top(title: String, back: (() -> Unit)?, menu: () -> Unit) {
             fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
             color = Ink,
         )
-        Icon("menu", "Abrir menu", menu)
+        if (showMenu) Icon("menu", "Abrir menu", menu) else Spacer(Modifier.width(44.dp))
     }
 }
 
@@ -286,7 +320,7 @@ fun Segments(items: List<String>, selected: String, onSelect: (String) -> Unit) 
                     label,
                     fontSize = 11.sp,
                     color = if (selected == label) LocalVisual.current.onPrimary else Muted,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }

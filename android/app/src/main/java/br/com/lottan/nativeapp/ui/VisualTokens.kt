@@ -20,26 +20,27 @@ data class VisualPalette(
 object VisualTokens {
     val Light =
         VisualPalette(
-            Color(0xffF5F6F8),
-            Color.White,
-            Color(0xffF0F1F3),
-            Color(0xff171717),
-            Color(0xff707070),
-            Color(0xffE4E5E8),
+            Color(0xffFAF9F6),
+            Color(0xffF2F0EC),
+            Color(0xffE8E6E2),
+            Color(0xff222222),
+            Color(0xff6D6C68),
+            Color(0xffD8D6D1),
             Color(0xff151515),
             Color.White,
         )
     val Dark =
         VisualPalette(
-            Color(0xff141416),
-            Color(0xff202023),
-            Color(0xff29292D),
-            Color(0xffF5F5F5),
-            Color(0xffA5A5AA),
+            Color(0xff000000),
+            Color(0xff121212),
+            Color(0xff1D1D1F),
+            Color(0xffF5F5F7),
+            Color(0xffA1A1A6),
             Color(0xff36363B),
             Color(0xffF1F1F3),
             Color(0xff151515),
         )
+    val Graphite = Dark.copy(background = Color(0xff18181A), surface = Color(0xff232326), secondary = Color(0xff303035))
     val CardRadius = 16.dp
     val CardElevation = 2.dp
     val BorderWidth = 1.dp

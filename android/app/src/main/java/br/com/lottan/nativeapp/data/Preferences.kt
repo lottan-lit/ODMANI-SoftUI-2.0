@@ -9,12 +9,12 @@ import kotlinx.coroutines.flow.*
 private val Context.store by preferencesDataStore("lottan_native")
 
 data class Preferences(
-    val theme: String = "system",
+    val theme: String = "dark",
     val entered: Boolean = false,
     val fit: String = "width",
     val rotation: Int = 0,
     val zoom: Float = 1f,
-    val direction: String = "vertical",
+    val direction: String = "single",
     val textSize: Float = 18f,
     val lineHeight: Float = 1.5f,
     val margin: String = "normal",
@@ -22,6 +22,11 @@ data class Preferences(
     val favorites: Set<String> = emptySet(),
     val bookmarks: Set<String> = emptySet(),
     val demoPages: List<Int> = listOf(48, 184, 20, 2),
+    val recordActivity: Boolean = true,
+    val showGoals: Boolean = true,
+    val highContrast: Boolean = false,
+    val librarySort: String = "Recentes",
+    val libraryView: String = "grid",
 )
 
 class PreferenceRepository(private val context: Context) {
@@ -30,12 +35,12 @@ class PreferenceRepository(private val context: Context) {
             .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
             .map { p ->
                 Preferences(
-                    p[stringPreferencesKey("theme")] ?: "system",
+                    p[stringPreferencesKey("theme")] ?: "dark",
                     p[booleanPreferencesKey("entered")] ?: false,
                     p[stringPreferencesKey("fit")] ?: "width",
                     p[intPreferencesKey("rotation")] ?: 0,
                     p[floatPreferencesKey("zoom")] ?: 1f,
-                    p[stringPreferencesKey("direction")] ?: "vertical",
+                    p[stringPreferencesKey("direction")] ?: "single",
                     p[floatPreferencesKey("textSize")] ?: 18f,
                     p[floatPreferencesKey("lineHeight")] ?: 1.5f,
                     p[stringPreferencesKey("margin")] ?: "normal",
@@ -43,8 +48,22 @@ class PreferenceRepository(private val context: Context) {
                     p[stringSetPreferencesKey("favorites")] ?: emptySet(),
                     p[stringSetPreferencesKey("bookmarks")] ?: emptySet(),
                     (0..3).map { p[intPreferencesKey("demo$it")] ?: listOf(48, 184, 20, 2)[it] },
+                    p[booleanPreferencesKey("recordActivity")] ?: true,
+                    p[booleanPreferencesKey("showGoals")] ?: true,
+                    p[booleanPreferencesKey("highContrast")] ?: false,
+                    p[stringPreferencesKey("librarySort")] ?: "Recentes",
+                    p[stringPreferencesKey("libraryView")]?.takeIf { it in setOf("grid", "list") } ?: "grid",
                 )
             }
+
+    suspend fun libraryView(value: String) {
+        require(value in setOf("grid", "list"))
+        context.store.edit { it[stringPreferencesKey("libraryView")] = value }
+    }
+
+    suspend fun sort(value: String) { context.store.edit { it[stringPreferencesKey("librarySort")] = value } }
+
+    suspend fun flag(key: String, value: Boolean) { context.store.edit { it[booleanPreferencesKey(key)] = value } }
 
     suspend fun theme(v: String) {
         context.store.edit { it[stringPreferencesKey("theme")] = v }
@@ -104,7 +123,7 @@ class PreferenceRepository(private val context: Context) {
             it[stringPreferencesKey("fit")] = "width"
             it[intPreferencesKey("rotation")] = 0
             it[floatPreferencesKey("zoom")] = 1f
-            it[stringPreferencesKey("direction")] = "vertical"
+            it[stringPreferencesKey("direction")] = "single"
             it[stringPreferencesKey("margin")] = "normal"
         }
     }

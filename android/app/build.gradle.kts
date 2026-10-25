@@ -3,7 +3,7 @@ android {
  namespace = "br.com.lottan.nativeapp"
  compileSdk = 35
  buildToolsVersion = "35.0.0"
- defaultConfig { applicationId = "br.com.lottan.reader.v2"; minSdk = 26; targetSdk = 35; versionCode = 4; versionName = "2.1.0-alpha01"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
+ defaultConfig { applicationId = "br.com.lottan.reader.v2"; minSdk = 26; targetSdk = 35; versionCode = 10; versionName = "2.1.0-alpha07"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
  buildFeatures { compose = true }
  compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
  kotlinOptions { jvmTarget = "17" }

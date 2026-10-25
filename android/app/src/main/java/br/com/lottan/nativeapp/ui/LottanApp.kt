@@ -12,7 +12,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.*
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
@@ -29,10 +33,15 @@ val demoNames =
         "O mundo mais perto",
     )
 
+val LocalBottomNavClearance = staticCompositionLocalOf { 0.dp }
+
 @Composable
 fun LottanApp(vm: LibraryViewModel) {
+    val catalog by vm.catalog.collectAsStateWithLifecycle()
+    val duplicate by vm.duplicate.collectAsStateWithLifecycle()
     val prefs by vm.prefs.collectAsStateWithLifecycle()
     val ready by vm.ready.collectAsStateWithLifecycle()
+    val workspace by vm.workspace.collectAsStateWithLifecycle()
     val books by vm.books.collectAsStateWithLifecycle()
     val groups by vm.groups.collectAsStateWithLifecycle()
     val days by vm.days.collectAsStateWithLifecycle()
@@ -43,7 +52,7 @@ fun LottanApp(vm: LibraryViewModel) {
     val route = entry?.destination?.route?.substringBefore("?") ?: "home"
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
-            it?.let(vm::import)
+            it?.let { uri -> vm.import(uri) }
         }
     fun go(page: String) {
         nav.navigate(page) { launchSingleTop = true }
@@ -64,15 +73,32 @@ fun LottanApp(vm: LibraryViewModel) {
         }
         return
     }
+    duplicate?.let { (uri, existing) ->
+        AlertDialog(onDismissRequest = { vm.duplicate.value = null }, title = { Text("PDF duplicado") }, text = { Text("Este arquivo já está salvo. Deseja abrir o existente ou importar outra cópia?") },
+            confirmButton = { TextButton({ vm.duplicate.value = null; go("book/$existing") }) { Text("Abrir existente") } },
+            dismissButton = { Row { TextButton({ vm.duplicate.value = null }) { Text("Cancelar") }; TextButton({ vm.duplicate.value = null; vm.import(uri, true) }) { Text("Outra cópia") } } })
+    }
+    val usesFloatingNav = route in listOf("home", "library", "explore", "stats", "search")
+    val density = LocalDensity.current
+    val keyboardVisible = WindowInsets.ime.getBottom(density) > 0
+    val showBottomNav = usesFloatingNav && !keyboardVisible
+    val bottomInset = WindowInsets.navigationBars.union(WindowInsets.displayCutout)
+        .asPaddingValues().calculateBottomPadding()
+    var navigationHeightPx by remember { mutableIntStateOf(0) }
+    val navigationHeight = with(density) { navigationHeightPx.toDp() }
+    val safeInsets = if (usesFloatingNav)
+        WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+    else WindowInsets.safeDrawing
+    CompositionLocalProvider(LocalBottomNavClearance provides if (showBottomNav) navigationHeight else 0.dp) {
     Background(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).imePadding()) {
-            Column(
-                Modifier.widthIn(max = 600.dp)
+        Box(Modifier.fillMaxSize().windowInsetsPadding(safeInsets).imePadding()) {
+            Box(
+                Modifier.widthIn(max = if (route == "library") 840.dp else 600.dp)
                     .fillMaxWidth()
                     .fillMaxHeight()
                     .align(Alignment.TopCenter)
             ) {
-                Box(Modifier.weight(1f)) {
+                Box(Modifier.fillMaxSize()) {
                     NavHost(
                         nav,
                         startDestination = if (prefs.entered) "home" else "welcome",
@@ -116,6 +142,7 @@ fun LottanApp(vm: LibraryViewModel) {
                                 busy,
                                 { picker.launch(arrayOf("application/pdf")) },
                                 ::go,
+                                workspace, days, vm,
                             ) { id ->
                                 vm.restart(id) { go("reader/$id") }
                             }
@@ -136,7 +163,7 @@ fun LottanApp(vm: LibraryViewModel) {
                                 { picker.launch(arrayOf("application/pdf")) },
                                 { back() },
                                 ::go,
-                                origin,
+                                origin, vm, workspace.pinned,
                             )
                         }
                         composable("book/{id}") {
@@ -145,6 +172,7 @@ fun LottanApp(vm: LibraryViewModel) {
                                 books.firstOrNull { b -> b.id == id },
                                 { back() },
                                 ::go,
+                                vm, workspace,
                             ) {
                                 vm.restart(it) { go("reader/$it") }
                             }
@@ -171,46 +199,15 @@ fun LottanApp(vm: LibraryViewModel) {
                             )
                         }
                         composable("search") { SearchScreen(books, { back() }, ::go) }
-                        composable("explore") {
-                            var selected by rememberSaveable { mutableStateOf("Livros") }
-                            Page {
-                                Top("Explorar", null, { go("menu") })
-                                Segments(listOf("Livros", "Revistas", "Jornais"), selected) {
-                                    selected = it
-                                }
-                                Glass(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
-                                    Caption("UM NOVO CAPÍTULO")
-                                    Text(
-                                        if (selected == "Livros")
-                                            "Histórias para\nficar mais um pouco."
-                                        else if (selected == "Revistas")
-                                            "Uma pausa.\nOutras perspectivas."
-                                        else "O mundo,\nmais perto.",
-                                        Modifier.padding(vertical = 28.dp),
-                                        fontSize = 29.sp,
-                                        lineHeight = 33.sp,
-                                        fontFamily = FontFamily.Serif,
-                                        color = Ink,
-                                    )
-                                    Caption(
-                                        "${if(selected=="Livros")2 else 1} título(s) de demonstração"
-                                    )
-                                }
-                                DemoShelf(
-                                    indices =
-                                        if (selected == "Livros") listOf(0, 1)
-                                        else if (selected == "Revistas") listOf(2) else listOf(3)
-                                ) {
-                                    go("detail/$it")
-                                }
-                                TextButton({ go("search") }) {
-                                    Text("⌕ Buscar na biblioteca", color = Ink)
-                                }
-                            }
+                        composable("explore") { EditorialExplore(catalog, { back() }, { go("menu") }) { go("official/$it") } }
+                        composable("official/{id}") {
+                            val id = it.arguments?.getString("id") ?: ""
+                            EditorialDetails(catalog.publications.firstOrNull { p -> p.id == id }, catalog, { back() })
                         }
                         composable("stats") {
-                            SoftStats(books, days, groups, { back() }, { go("menu") })
+                            SoftStats(books, days, groups, { back() }, { go("menu") }, workspace, vm) { go("goals") }
                         }
+                        composable("goals") { GoalsScreen(vm, workspace) { back() } }
                         composable("organize") {
                             OrganizeScreen(vm, books, groups, { back() }, { go("menu") }) {
                                 go("reader/$it")
@@ -236,6 +233,9 @@ fun LottanApp(vm: LibraryViewModel) {
                                     Text("Tema do aplicativo", color = Ink)
                                     Caption("Biblioteca, menus e leitura")
                                     ThemePicker(prefs.theme, vm::theme)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(prefs.highContrast, { v -> vm.run { vm.preferences.flag("highContrast", v) } }); Text("Contraste elevado", color = Ink)
+                                    }
                                 }
                                 MenuSection(
                                     "LEITURA",
@@ -248,12 +248,15 @@ fun LottanApp(vm: LibraryViewModel) {
                                 MenuSection(
                                     "SUA BIBLIOTECA",
                                     listOf(
-                                        "Meus documentos" to "library",
+                                        "Pastas e categorias" to "organize",
                                         "Importar PDF" to "import",
-                                        "Atividade" to "stats",
                                     ),
                                     ::go,
                                 )
+                                MenuSection("HÁBITOS DE LEITURA", listOf("Metas e registro de atividade" to "goals"), ::go)
+                                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(prefs.recordActivity, { v -> vm.run { vm.preferences.flag("recordActivity", v) } }); Text("Registrar novas sessões", color = Ink) }
+                                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(prefs.showGoals, { v -> vm.run { vm.preferences.flag("showGoals", v) } }); Text("Mostrar metas na Home", color = Ink) }
+                                MenuSection("DADOS E ARMAZENAMENTO", listOf("Armazenamento e miniaturas" to "storage"), ::go)
                                 MenuSection(
                                     "SOBRE",
                                     listOf(
@@ -266,6 +269,15 @@ fun LottanApp(vm: LibraryViewModel) {
                                     "ODMANI · Desenvolvido pela AUDMANI\nParceira editorial — Lottan",
                                     Modifier.padding(top = 25.dp),
                                 )
+                            }
+                        }
+                        composable("storage") {
+                            Page {
+                                Top("Dados e armazenamento", { back() }, { go("menu") })
+                                Caption("PDFs: ${"%.1f".format(books.sumOf { it.bytes } / 1048576.0)} MB")
+                                TextButton({ vm.run { vm.clearThumbnailCache() } }) { Text("Limpar cache de miniaturas") }
+                                Caption("Apenas miniaturas temporárias serão removidas. PDFs, progresso, anotações e checklists são preservados.")
+                                Caption("Backup completo e restauração ainda não estão disponíveis.")
                             }
                         }
                         composable("pdf-settings") {
@@ -305,7 +317,7 @@ fun LottanApp(vm: LibraryViewModel) {
                                 Glass {
                                     Text("Seu PDF, no seu ritmo.", fontSize = 24.sp, color = Ink)
                                     Caption(
-                                        "Importar\nEscolha um PDF no seletor do Android. Uma cópia fica no app para ler offline.\n\nLer\nAbra o PDF na biblioteca. Use as setas, a barra ou toque no número para ir a uma página.\n\nAmpliar e mover\nUse pinça ou os botões − e +. Dois toques alternam o zoom. Arraste para mover o documento.\n\nAparência\nO tema vale para a interface. PDFs mantêm suas cores originais.\n\nSem edição, anotações, busca dentro do PDF, sincronização, leitura de arquivos protegidos por senha ou OCR."
+                                        "Importar\nEscolha um PDF no seletor do Android. Uma cópia fica no app para ler offline.\n\nLer\nAbra o PDF na biblioteca. Use as setas, a barra ou toque no número para ir a uma página.\n\nAmpliar e mover\nUse pinça ou os botões − e +. Dois toques alternam o zoom. Arraste para mover o documento.\n\nAparência\nO tema vale para a interface. PDFs mantêm suas cores originais.\n\nAnotações e checklist estão nos detalhes de cada PDF. Busca dentro do PDF, sincronização, arquivos protegidos por senha e OCR ainda não estão disponíveis."
                                     )
                                 }
                             }
@@ -327,7 +339,7 @@ fun LottanApp(vm: LibraryViewModel) {
                                         color = Ink,
                                     )
                                     Caption(
-                                        "Desenvolvido pela AUDMANI.\nParceira editorial — Lottan.\n\nVersão Android 2.1.0-alpha01 · nativa\n\nLeitura offline de PDFs, zoom, rotação, tema e posição salva. Seus PDFs ficam apenas neste celular.\n\nAndroid 8 ou posterior. Sem anúncios e sem conta.\n\nAtualização da versão nativa: PDFs, preferências e histórico preservados. A biblioteca do antigo MVP web não é migrada automaticamente."
+                                        "Desenvolvido pela AUDMANI.\nParceira editorial — Lottan.\n\nVersão Android 2.1.0-alpha03 · nativa\n\nLeitura offline de PDFs, zoom, rotação, tema e posição salva. Seus PDFs ficam apenas neste celular.\n\nAndroid 8 ou posterior. Sem anúncios e sem conta.\n\nAtualização da versão nativa: PDFs, preferências e histórico preservados. A biblioteca do antigo MVP web não é migrada automaticamente."
                                     )
                                 }
                             }
@@ -348,10 +360,25 @@ fun LottanApp(vm: LibraryViewModel) {
                         }
                     }
                 }
-                if (route in listOf("home", "library", "explore", "stats", "search"))
-                    BottomNav(route, ::go)
             }
-            SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = 80.dp))
+            if (showBottomNav) {
+                // Draw-only overlay: content can scroll behind it; only capsules handle taps.
+                val background = LocalVisual.current.background
+                Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(navigationHeight)
+                    .testTag("navigation-gradient")
+                    .background(Brush.verticalGradient(
+                        0f to background.copy(alpha = 0f),
+                        ((navigationHeight - bottomInset).value / 2f / navigationHeight.value.coerceAtLeast(1f)).coerceIn(0f, 1f) to background.copy(alpha = 0f),
+                        1f to background,
+                    )))
+                Box(Modifier.align(Alignment.BottomCenter).widthIn(max = 600.dp).fillMaxWidth()
+                    .testTag("floating-navigation")
+                    .onSizeChanged { navigationHeightPx = it.height }
+                    .padding(bottom = bottomInset)) {
+                    BottomNav(route, ::go)
+                }
+            }
+            SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = LocalBottomNavClearance.current))
             if (busy)
                 Box(
                     Modifier.fillMaxSize().background(Color.Black.copy(.2f)),
@@ -364,14 +391,15 @@ fun LottanApp(vm: LibraryViewModel) {
                 }
         }
     }
+    }
 }
 
 @Composable
 fun Page(content: @Composable ColumnScope.() -> Unit) {
     Column(
-        Modifier.fillMaxSize()
+        Modifier.fillMaxSize().testTag("scrolling-page")
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 14.dp),
+            .padding(start = 24.dp, end = 24.dp, top = 14.dp, bottom = 14.dp + LocalBottomNavClearance.current),
         content = content,
     )
 }
