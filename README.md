@@ -1,44 +1,27 @@
-# ODMANI — Soft UI 2.0
+# ODMANI Soft UI 2.0
 
-**AUDMANI — Criadora e desenvolvedora da ODMANI.**  
-**Parceira editorial — Lottan.**
+Leitor Android desenvolvido pela AUDMANI. Parceira editorial: Lottan.
 
-Desenvolvimento privado e independente do leitor Android nativo. A versão anterior e seus repositórios permanecem preservados.
+## Baixar o APK de teste
 
-## Projeto
+**[Abrir o site e baixar no celular](https://lottan-lit.github.io/ODMANI-SoftUI-2.0/#download)**
 
-- `android/`: aplicativo Kotlin/Jetpack Compose, Room, DataStore, PdfRenderer, Navigation e Coroutines.
-- `web/`: landing page HTML/CSS/JavaScript, temas claro/escuro/sistema, pronta para hospedagem estática após autorização.
-- `docs/`: alterações, validação e distribuição.
+APK **2.2.0-softui01**, código **5**, Android 8 ou posterior, **11,24 MB**. Este é um build Debug para testes, validado no Android 15. Versão, tamanho e SHA-256 estão em `web/assets/release.json`.
 
-Versão de teste: **2.1.0-alpha01**, código Android **4**, Android 8+. O identificador `br.com.lottan.reader.v2` e nomes internos do armazenamento são mantidos para compatibilidade com a versão nativa instalada. A marca exibida é ODMANI. Nomes internos legados não indicam propriedade editorial.
+## Organização e versões
 
-## Atualização
+- `web/`: site público, capturas reais e APK aprovado para download.
+- `android/`: fontes Android da versão de origem, **2.1.0-alpha01 / código 4**. Não correspondem ao APK 2.2.0 publicado.
+- `docs/`: documentação; as notas antigas são registros da versão de origem.
+- `.github/workflows/pages.yml`: publica exclusivamente o conteúdo de `web/`.
+- O fluxo antigo de importar fontes é legado; não é necessário para publicar o site.
 
-Home modular, retomada compacta, PDFs pessoais separados da biblioteca editorial verificada, detalhes para documentos reais, estatísticas semanais e mapa de atividade, capas originais com cache, superfícies Soft UI e ícone oficial com símbolo 12% menor. A navegação inferior mantém seu código e geometria originais.
+O proprietário autorizou publicar somente o site e o APK. As fontes atualizadas da versão 2.2.0 e os registros detalhados de validação permanecem locais. Não foram enviados chaves, credenciais, PDFs pessoais ou configurações privadas.
 
-Importações sempre entram como pessoais. Não há catálogo oficial integrado nem atribuição baseada no título do arquivo. Os exemplos continuam acessíveis em Explorar e identificados como demonstração; não preenchem a Home ou a biblioteca real.
+O pacote ZIP antigo com fontes duplicadas foi retirado da raiz; o histórico permanece recuperável no Git. Para compilar as fontes da versão de origem, consulte `android/README.md`.
 
-## Compilar
+## Instalação e atualização
 
-JDK 17, Android SDK Platform 35 e Build Tools 35.0.0. Em `android/local.properties`, configure seu `sdk.dir`. Execute em `android/`:
+Abra o site no celular, toque em Baixar APK de teste e siga as instruções do Android. Atualizar uma instalação existente exige certificado compatível. Evite desinstalar para preservar documentos e histórico.
 
-```sh
-./gradlew assembleDebug testDebugUnitTest assembleDebugAndroidTest lintDebug
-```
-
-Para testes em dispositivo: `./gradlew connectedDebugAndroidTest`. O APK de teste é produzido em `android/app/build/outputs/apk/debug/app-debug.apk`. Não distribuir publicamente builds debug. A chave de desenvolvimento deve ser preservada fora do Git para permitir atualizações; uma distribuição de produção exige assinatura apropriada e aprovação.
-
-## Página local
-
-```sh
-python3 -m http.server 4182 --directory web
-```
-
-Abra `http://localhost:4182`. Não há compilação web nem dependências externas. Sem APK aprovado, o download permanece desabilitado. Capturas reais desta versão aguardam validação em Android; imagens conceituais não são tratadas como screenshots.
-
-## Dados e distribuição
-
-Room migra do esquema 1 para o 2 adicionando apenas a origem com padrão pessoal; nenhuma migração destrutiva. PDFs, progresso, categorias, pastas, conclusão e dias de atividade são preservados. Fontes, zoom e cache não alteram os PDFs originais.
-
-Nenhum segredo, chave de assinatura, documento pessoal, cache ou APK é versionado. O repositório permanece privado. A página e o APK não foram publicados automaticamente. Consulte `docs/PUBLICACAO.md` e `docs/VALIDACAO-SOFTUI2.md`.
+13 testes unitários e 6 instrumentados passaram no APK publicado. A validação incluiu importação pelo seletor Android, renderização, capas, zoom e retomada após reiniciar o processo. Limite: emulador Android 15; sem teste em aparelho físico ou outras APIs.

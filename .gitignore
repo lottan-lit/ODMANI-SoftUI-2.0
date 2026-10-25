@@ -8,3 +8,8 @@
 *.aab
 .env*
 .DS_Store
+
+.build-tools/
+
+# APK de teste aprovado para download no site.
+!web/assets/ODMANI-2.2.0-softui01-debug.apk
