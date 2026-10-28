@@ -1,10 +1,10 @@
 {
   "versionName": "0000001.0/26",
-  "versionCode": 14,
+  "versionCode": 16,
   "channel": "release",
   "minAndroid": "8.0",
-  "bytes": 12029931,
-  "sha256": "46fa2ada207e522f36d7a48c2ec614497882a74dc5ab32eadbd13f7fc366eab5",
-  "file": "ODMANI-correcoes.apk",
+  "bytes": 11522002,
+  "sha256": "e871416cc216ee02687721cc92e052f14f8730c7a9da581450fd627c3ec6108e",
+  "file": "ODMANI-V16.apk",
   "appLabel": "ODMANI"
 }
