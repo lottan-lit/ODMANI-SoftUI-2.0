@@ -1,10 +1,14 @@
 plugins { id("com.android.application"); id("org.jetbrains.kotlin.android"); id("org.jetbrains.kotlin.plugin.compose"); id("com.google.devtools.ksp") }
+// Public and Android version identifiers share this single release value.
+val publicReleaseVersion = "0000001.0/26"
 android {
  namespace = "br.com.lottan.nativeapp"
  compileSdk = 35
  buildToolsVersion = "35.0.0"
- defaultConfig { applicationId = "br.com.lottan.reader.v2"; minSdk = 26; targetSdk = 35; versionCode = 10; versionName = "2.1.0-alpha07"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
- buildFeatures { compose = true }
+ defaultConfig { applicationId = "br.com.lottan.reader.v2"; minSdk = 26; targetSdk = 35; versionCode = 16; versionName = publicReleaseVersion; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+ buildConfigField("String", "PUBLIC_VERSION", "\"$publicReleaseVersion\"")
+ }
+ buildFeatures { compose = true; buildConfig = true }
  compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
  kotlinOptions { jvmTarget = "17" }
  buildTypes { release { isMinifyEnabled = true; proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro") } }

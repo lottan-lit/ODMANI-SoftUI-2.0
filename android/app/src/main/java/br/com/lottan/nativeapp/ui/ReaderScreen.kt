@@ -63,22 +63,28 @@ fun ReaderScreen(id: String, prefs: Preferences, back: () -> Unit) {
             }
         }
     }
-    val outside = when (comfort.background) {
-        "Grafite" -> Color(0xff1D1D1F); "Cinza" -> Color(0xff777777)
-        "Papel" -> Color(0xffFAF9F6); "Sépia" -> Color(0xffD8C5A4); "Branco" -> Color.White
-        else -> runCatching { Color(android.graphics.Color.parseColor(comfort.background)) }.getOrDefault(Color.Black)
-    }
-    val tint = when (comfort.filter) {
-        "Creme" -> Color(0xffFFF0CB); "Off-white" -> Color(0xffFAF9F6)
-        "Sépia" -> Color(0xffD8BC88); "Rosado" -> Color(0xffF5DCE1)
-        else -> Color.Transparent
-    }
+    val outside = readerBackgroundColor(comfort.background)
+    val tint = readerFilterColor(comfort.filter)
     val book by vm.book.collectAsStateWithLifecycle()
     val page by vm.page.collectAsStateWithLifecycle()
     val image by vm.bitmap.collectAsStateWithLifecycle()
     val loading by vm.loading.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
     var controls by rememberSaveable(id) { mutableStateOf(true) }
+    // System bar icons must stay legible: over the black top bar while controls are visible, over the reading colour when hidden.
+    val lightBars = outside.luminance() > .5f
+    DisposableEffect(activity, lightBars, controls) {
+        val window = activity?.window
+        val controller = window?.let { androidx.core.view.WindowCompat.getInsetsController(it, view) }
+        val previousStatus = controller?.isAppearanceLightStatusBars
+        val previousNavigation = controller?.isAppearanceLightNavigationBars
+        controller?.isAppearanceLightStatusBars = !controls && lightBars
+        if (!controls) controller?.isAppearanceLightNavigationBars = lightBars
+        onDispose {
+            if (previousStatus != null) controller.isAppearanceLightStatusBars = previousStatus
+            if (previousNavigation != null) controller.isAppearanceLightNavigationBars = previousNavigation
+        }
+    }
     var zoom by rememberSaveable(id) { mutableFloatStateOf(prefs.zoom) }
     var comfortInitialized by rememberSaveable(id) { mutableStateOf(false) }
     var rotation by rememberSaveable(id) { mutableIntStateOf(prefs.rotation) }
@@ -129,9 +135,18 @@ fun ReaderScreen(id: String, prefs: Preferences, back: () -> Unit) {
     LaunchedEffect(page) {
         pan = Offset.Zero
     }
-    Column(Modifier.fillMaxSize().background(LocalVisual.current.background)) {
+    var topControlsHeight by rememberSaveable { mutableIntStateOf(0) }
+    var bottomControlsHeight by rememberSaveable { mutableIntStateOf(0) }
+    val screenDensity = LocalDensity.current
+    // Background of the whole reader surface comes from the reading-comfort colour, never from the app theme.
+    // Controls keep following the app theme; their insets are applied here because the shell no longer pads the reader.
+    val topInset = WindowInsets.statusBars.union(WindowInsets.displayCutout).only(WindowInsetsSides.Top)
+    val bottomInset = WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)
+    val sideInset = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)
+    Column(Modifier.fillMaxSize().background(outside).windowInsetsPadding(sideInset)) {
+        Box(Modifier.fillMaxWidth()) {
         if (controls) Row(
-            Modifier.fillMaxWidth().background(Color.Black).heightIn(min = 52.dp).padding(horizontal = 8.dp),
+            Modifier.fillMaxWidth().onSizeChanged { topControlsHeight = it.height }.background(Color.Black).windowInsetsPadding(topInset).heightIn(min = 52.dp).padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(back, Modifier.size(48.dp).semanticsLabel("Voltar")) { Glyph("back", tint = Color(0xffF5F5F7)) }
@@ -141,9 +156,11 @@ fun ReaderScreen(id: String, prefs: Preferences, back: () -> Unit) {
                 Glyph("sliders", tint = Color(0xffF5F5F7))
             }
         }
+        else Spacer(Modifier.fillMaxWidth().height(if (topControlsHeight > 0) with(screenDensity) { topControlsHeight.toDp() } else 52.dp).clickable { controls = true; vm.interact() })
+        }
         var viewport by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
         Box(
-            Modifier.weight(1f)
+            Modifier.weight(1f).testTag("reader-viewport")
                 .fillMaxWidth()
                 .background(outside)
                 .padding(
@@ -203,7 +220,7 @@ fun ReaderScreen(id: String, prefs: Preferences, back: () -> Unit) {
                 Image(
                     bitmap.asImageBitmap(),
                     "Página ${page+1}",
-                    Modifier.fillMaxWidth()
+                    Modifier.fillMaxWidth().testTag("reader-image")
                         .then(
                             if (fit == "width")
                                 Modifier.aspectRatio(ratio, matchHeightConstraintsFirst = false)
@@ -227,7 +244,10 @@ fun ReaderScreen(id: String, prefs: Preferences, back: () -> Unit) {
                     TextButton({ vm.show(page) }) { Text("Tentar novamente") }
                 }
         }
-        if (controls) {
+        val total = book?.pages ?: 1
+        var scrub by remember(page) { mutableFloatStateOf(page.toFloat()) }
+        Box(Modifier.fillMaxWidth()) {
+        if (controls) LottanTheme(dark = outside.luminance() <= .5f, animations = LocalAnimations.current) { Column(Modifier.fillMaxWidth().onSizeChanged { bottomControlsHeight = it.height }.background(outside).windowInsetsPadding(bottomInset)) {
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -254,8 +274,6 @@ fun ReaderScreen(id: String, prefs: Preferences, back: () -> Unit) {
                 Text("›", fontSize = 27.sp)
             }
         }
-        val total = book?.pages ?: 1
-        var scrub by remember(page) { mutableFloatStateOf(page.toFloat()) }
         Slider(
             scrub,
             { scrub = it },
@@ -268,6 +286,7 @@ fun ReaderScreen(id: String, prefs: Preferences, back: () -> Unit) {
             "${((page+1)*100f/total).toInt()}% lido",
             Modifier.align(Alignment.CenterHorizontally).padding(bottom = 8.dp),
         )
+        } } else Spacer(Modifier.fillMaxWidth().height(with(screenDensity) { bottomControlsHeight.toDp() }).clickable { controls = true; vm.interact() })
         }
     }
     if (settings) ReaderAdjustments(
@@ -282,7 +301,7 @@ fun ReaderScreen(id: String, prefs: Preferences, back: () -> Unit) {
             onDismissRequest = { jump = false },
             title = { Text("Ir para a página") },
             text = {
-                OutlinedTextField(
+                SoftField(
                     number,
                     { number = it.filter(Char::isDigit) },
                     singleLine = true,

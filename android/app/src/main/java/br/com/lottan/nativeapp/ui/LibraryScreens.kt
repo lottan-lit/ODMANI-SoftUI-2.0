@@ -32,16 +32,23 @@ import br.com.lottan.nativeapp.domain.ReadingRules
 @Composable
 fun LibraryScreen(
     books: List<Book>, busy: Boolean, importPdf: () -> Unit, back: () -> Unit,
-    go: (String) -> Unit, origin: String = "all", vm: LibraryViewModel, pinned: Set<String>,
+    go: (String) -> Unit, origin: String = "all", vm: LibraryViewModel, pinned: Set<String>, folder: br.com.lottan.nativeapp.data.Group? = null,
 ) {
     val preferences by vm.prefs.collectAsState()
     val groups by vm.groups.collectAsState()
+    val categoryLinks by vm.categoryLinks.collectAsState()
+    val categories = remember(groups) { groups.filter { it.kind == "categories" } }
+    // "" = every document, "none" = without category, otherwise a category id. Combines with folder and origin filters.
+    var categoryFilter by rememberSaveable { mutableStateOf("") }
+    var assigningCategories by remember { mutableStateOf(false) }
     var selected by rememberSaveable(origin) { mutableStateOf(origin) }
     var query by rememberSaveable { mutableStateOf("") }
     var searchExpanded by rememberSaveable { mutableStateOf(false) }
     var requestSearchFocus by remember { mutableStateOf(false) }
     var selectedIds by rememberSaveable { mutableStateOf(setOf<String>()) }
     var removing by remember { mutableStateOf(setOf<String>()) }
+    var addMembers by remember { mutableStateOf(false) }
+    var deletingFolder by remember { mutableStateOf(false) }
     var assigning by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<Book?>(null) }
     var newName by rememberSaveable { mutableStateOf("") }
@@ -54,8 +61,10 @@ fun LibraryScreen(
     val keyboard = LocalSoftwareKeyboardController.current
     val gridState = rememberLazyGridState()
     val listState = rememberLazyListState()
-    val shown = remember(books, selected, query, sort, pinned) {
-        books.filter {
+    val shown = remember(books, selected, query, sort, pinned, categoryFilter, categoryLinks) {
+        val withCategory = categoryLinks.map { it.bookId }.toSet()
+        val inCategory = categoryLinks.filter { it.categoryId == categoryFilter }.map { it.bookId }.toSet()
+        books.filter { categoryFilter.isEmpty() || if (categoryFilter == "none") it.id !in withCategory else it.id in inCategory }.filter {
             selected == "all" || if (selected == "pinned") it.id in pinned else
                 if (selected == "lottan_verified") it.origin == selected else it.origin != "lottan_verified"
         }.filter { normalize(it.name).contains(normalize(query)) }.let { list ->
@@ -83,21 +92,20 @@ fun LibraryScreen(
         if (density.fontScale >= 1.3f) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 LibraryIcon("back", "Voltar", action = back)
-                Text("Biblioteca", Modifier.weight(1f), color = Ink, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(folder?.name ?: "Pastas", Modifier.weight(1f), color = Ink, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, content = actions)
         } else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             LibraryIcon("back", "Voltar", action = back)
-            Text("Biblioteca", Modifier.weight(1f), color = Ink, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(folder?.name ?: "Pastas", Modifier.weight(1f), color = Ink, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             actions()
         }
         if (searchExpanded) {
             LaunchedEffect(requestSearchFocus) {
                 if (requestSearchFocus) { focus.requestFocus(); keyboard?.show(); requestSearchFocus = false }
             }
-            OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(focus),
-                placeholder = { Text("Buscar documentos") }, singleLine = true, shape = RoundedCornerShape(20.dp),
-                trailingIcon = { if (query.isNotEmpty()) LibraryIcon("close", "Limpar pesquisa") { query = "" } },
+            SoftField(query, { query = it }, Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(focus),
+                placeholder = { Text("Buscar documentos") }, singleLine = true, trailingIcon = { if (query.isNotEmpty()) LibraryIcon("close", "Limpar pesquisa") { query = "" } },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }))
         }
@@ -113,12 +121,22 @@ fun LibraryScreen(
                 }
             }
         }
-        Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { go("organize") }
-            .semantics { contentDescription = "Ver todas as pastas"; role = Role.Button }, verticalAlignment = Alignment.CenterVertically) {
-            Glyph("folder", Modifier.size(20.dp))
-            Text("Minhas pastas", Modifier.weight(1f).padding(horizontal = 10.dp), color = Ink, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 14.sp)
-            Text("Ver todas", color = Muted, fontSize = 12.sp)
-            Glyph("forward", Modifier.padding(start = 6.dp).size(16.dp), tint = Muted)
+        if (categories.isNotEmpty()) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 8.dp).testTag("category-filters"), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(categoryFilter.isEmpty(), { categoryFilter = "" }, { Text("Todas as categorias", fontSize = 13.sp) })
+                categories.forEach { c -> FilterChip(categoryFilter == c.id, { categoryFilter = c.id }, { Text(c.name, fontSize = 13.sp) }, Modifier.testTag("cat-filter-${c.id}")) }
+                FilterChip(categoryFilter == "none", { categoryFilter = "none" }, { Text("Sem categoria", fontSize = 13.sp) })
+            }
+        }
+        if (folder == null) FolderStrip(vm, go)
+        else Column(Modifier.fillMaxWidth()) {
+            FolderVisual(folder, Modifier.fillMaxWidth().height(90.dp))
+            Caption("${books.size} PDFs nesta pasta")
+            TextButton({ addMembers = true }) { Text("Adicionar PDFs existentes") }
+            Row {
+                TextButton({ go("folder/${folder.id}/edit") }) { Text("Editar pasta") }
+                TextButton({ deletingFolder = true }) { Text("Excluir pasta") }
+            }
         }
         HorizontalDivider(color = LocalVisual.current.border)
         FlowRow(Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp), horizontalArrangement = Arrangement.SpaceBetween,
@@ -151,6 +169,7 @@ fun LibraryScreen(
                 Text("${selectedIds.size} ${if (selectedIds.size == 1) "selecionado" else "selecionados"}", color = Ink)
                 FlowRow {
                     TextButton({ assigning = true }) { Text("Adicionar à pasta") }
+                    TextButton({ assigningCategories = true }) { Text("Adicionar à categoria") }
                     TextButton({ removing = selectedIds }) { Text("Remover") }
                     TextButton({ selectedIds = emptySet() }) { Text("Cancelar seleção") }
                 }
@@ -162,6 +181,7 @@ fun LibraryScreen(
     val empty: @Composable () -> Unit = {
         Column(Modifier.fillMaxWidth()) {
         val title = when {
+            folder != null && books.isEmpty() -> "Pasta vazia"
             books.isEmpty() -> "Sua biblioteca está pronta"
             query.isNotBlank() -> "Nenhum resultado"
             selected == "lottan_verified" -> "Nenhum documento Lottan"
@@ -169,12 +189,14 @@ fun LibraryScreen(
             else -> "Nenhum documento neste filtro"
         }
         EmptyLibraryState(title, when {
+            folder != null && books.isEmpty() -> "Adicione documentos da biblioteca. Os arquivos não serão duplicados."
             books.isEmpty() -> "Importe um PDF para começar sua leitura."
             query.isNotBlank() -> "Não encontramos documentos para “$query” neste filtro."
             selected == "lottan_verified" -> "Nenhuma publicação editorial disponível. Seus PDFs pessoais continuam na aba Pessoais."
             else -> "Escolha outro filtro para ver seus documentos."
         })
-        if (books.isEmpty()) { Spacer(Modifier.height(12.dp)); Primary("＋ Importar PDF", importPdf, !busy) }
+        if (folder != null && books.isEmpty()) TextButton({ addMembers = true }) { Text("Adicionar documentos à pasta") }
+        else if (books.isEmpty()) { Spacer(Modifier.height(12.dp)); Primary("＋ Importar PDF", importPdf, !busy) }
         else TextButton({ if (query.isNotBlank()) query = "" else selected = "all" }) { Text(if (query.isNotBlank()) "Limpar pesquisa" else "Ver todos os documentos") }
         }
     }
@@ -190,9 +212,10 @@ fun LibraryScreen(
                     "folder" -> { selectedIds = setOf(doc.id); assigning = true }
                     "category" -> categorizing = doc
                     "select" -> toggleSelection(doc.id)
+                    "unlink" -> folder?.let { group -> vm.run { vm.repository.dao.removeFolder(group.id, doc.id) } }
                     "remove" -> removing = setOf(doc.id)
                 }
-            })
+            }, inFolder = folder != null)
     }
     val padding = PaddingValues(start = VisualTokens.ScreenInset, end = VisualTokens.ScreenInset, top = 14.dp,
         bottom = 14.dp + LocalBottomNavClearance.current)
@@ -214,37 +237,20 @@ fun LibraryScreen(
         text = { Text("As cópias e os dados de leitura destes PDFs serão removidos da biblioteca. Os arquivos originais são preservados.") },
         confirmButton = { TextButton({ val ids = removing; ids.forEach(vm::remove); selectedIds = selectedIds - ids; removing = emptySet() }) { Text("Remover") } },
         dismissButton = { TextButton({ removing = emptySet() }) { Text("Cancelar") } })
-    if (assigning) AlertDialog(onDismissRequest = { assigning = false }, title = { Text("Adicionar à pasta") }, text = {
-        Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
-            val folders = groups.filter { it.kind == "folders" }
-            if (folders.isEmpty()) TextButton({ assigning = false; go("organize") }) { Text("Criar primeira pasta") }
-            folders.forEach { folder -> TextButton({
-                val ids = selectedIds.toSet()
-                vm.run { ids.forEach { vm.repository.dao.addFolder(FolderBook(folder.id, it)) } }
-                assigning = false; selectedIds = emptySet()
-            }) { Text(folder.name) } }
-        }
-    }, confirmButton = { TextButton({ assigning = false }) { Text("Fechar") } })
+    if (assigning) AssignFoldersDialog(selectedIds, vm) { assigning = false; selectedIds = emptySet() }
+    if (assigningCategories) AssignCategoriesDialog(selectedIds, vm, { assigningCategories = false; selectedIds = emptySet() }, { go("category/new") })
+    if (addMembers && folder != null) FolderMembersDialog(folder, vm) { addMembers = false }
+    if (deletingFolder && folder != null) DeleteFolderDialog(folder, vm, deleted = back) { deletingFolder = false }
     renaming?.let { book ->
         AlertDialog(onDismissRequest = { renaming = null }, title = { Text("Renomear documento") }, text = {
-            OutlinedTextField(newName, { newName = it.take(250) }, label = { Text("Novo título") })
+            SoftField(newName, { newName = it.take(250) }, label = { Text("Novo título") })
         }, confirmButton = { TextButton({
             val name = newName.trim(); vm.run {
                 vm.repository.dao.book(book.id)?.let { vm.repository.dao.put(it.copy(name = name)) }
             }; renaming = null
         }, enabled = newName.isNotBlank()) { Text("Salvar") } }, dismissButton = { TextButton({ renaming = null }) { Text("Cancelar") } })
     }
-    categorizing?.let { book ->
-        AlertDialog(onDismissRequest = { categorizing = null }, title = { Text("Alterar categoria") }, text = {
-            Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
-                TextButton({ vm.run { vm.repository.assign(book.id, "categories", "") }; categorizing = null }) { Text("Sem categoria") }
-                groups.filter { it.kind == "categories" }.forEach { group ->
-                    TextButton({ vm.run { vm.repository.assign(book.id, "categories", group.id) }; categorizing = null }) { Text(group.name) }
-                }
-                TextButton({ categorizing = null; go("organize") }) { Text("Gerenciar categorias") }
-            }
-        }, confirmButton = { TextButton({ categorizing = null }) { Text("Fechar") } })
-    }
+    categorizing?.let { book -> AssignCategoriesDialog(setOf(book.id), vm, { categorizing = null }, { go("category/new") }) }
 }
 
 @Composable
@@ -253,13 +259,22 @@ private fun LibraryIcon(glyph: String, label: String, enabled: Boolean = true, a
 }
 
 @Composable
-private fun DocumentMenu(book: Book, action: (String) -> Unit) {
+private fun DocumentMenu(book: Book, action: (String) -> Unit, onCover: Boolean = false, inFolder: Boolean = false) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        LibraryIcon("more", "Opções de ${ReadingRules.title(book.name)}") { expanded = true }
+        if (onCover) IconButton({ expanded = true }, Modifier.size(48.dp).semantics { contentDescription = "Opções de ${ReadingRules.title(book.name)}" }) {
+            Canvas(Modifier.size(24.dp)) {
+                val unit = size.width / 24f
+                listOf(5f, 12f, 19f).forEach { y ->
+                    val center = androidx.compose.ui.geometry.Offset(size.width / 2, y * unit)
+                    drawCircle(androidx.compose.ui.graphics.Color.White, 2.25f * unit, center)
+                    drawCircle(androidx.compose.ui.graphics.Color.Black, 1.5f * unit, center)
+                }
+            }
+        } else LibraryIcon("more", "Opções de ${ReadingRules.title(book.name)}") { expanded = true }
         DropdownMenu(expanded, { expanded = false }) {
             listOf("open" to "Abrir documento", "details" to "Ver detalhes", "rename" to "Renomear", "folder" to "Organizar em pastas",
-                "category" to "Alterar categoria", "select" to "Selecionar", "remove" to "Remover documento").forEach { (key, label) ->
+                "category" to "Alterar categoria", "select" to "Selecionar", "remove" to "Remover documento").plus(if (inFolder) listOf("unlink" to "Remover desta pasta") else emptyList()).forEach { (key, label) ->
                 DropdownMenuItem(text = { Text(label) }, onClick = { expanded = false; action(key) })
             }
         }
@@ -268,7 +283,7 @@ private fun DocumentMenu(book: Book, action: (String) -> Unit) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LibraryBook(book: Book, list: Boolean, selected: Boolean, open: () -> Unit, select: () -> Unit, action: (String) -> Unit) {
+private fun LibraryBook(book: Book, list: Boolean, selected: Boolean, open: () -> Unit, select: () -> Unit, action: (String) -> Unit, inFolder: Boolean = false) {
     val shape = RoundedCornerShape(14.dp)
     val modifier = Modifier.fillMaxWidth().testTag("library-book-${book.id}")
         .clip(shape).background(if (selected) LocalVisual.current.secondary else androidx.compose.ui.graphics.Color.Transparent)
@@ -280,16 +295,16 @@ private fun LibraryBook(book: Book, list: Boolean, selected: Boolean, open: () -
         Column(Modifier.testTag("library-progress-${book.id}")) { ReadingProgress(book) }
     }
     if (list) Row(modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        PdfCover(book, Modifier.width(64.dp).height(92.dp))
+        PdfCover(book, Modifier.width(64.dp).aspectRatio(CoverRatio))
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) { description() }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            DocumentMenu(book, action)
+            DocumentMenu(book, action, inFolder = inFolder)
             if (selected) Text("✓", color = Ink)
         }
     } else Column(modifier.padding(10.dp)) {
         Box {
-            PdfCover(book, Modifier.fillMaxWidth().aspectRatio(.7f))
-            Box(Modifier.align(Alignment.TopEnd).background(LocalVisual.current.surface.copy(alpha = .95f), CircleShape)) { DocumentMenu(book, action) }
+            PdfCover(book, Modifier.fillMaxWidth().aspectRatio(CoverRatio))
+            Box(Modifier.align(Alignment.TopEnd)) { DocumentMenu(book, action, onCover = true, inFolder = inFolder) }
             if (selected) Text("✓", Modifier.align(Alignment.TopStart).background(LocalVisual.current.surface, CircleShape).padding(8.dp), color = Ink)
         }
         description()
@@ -306,14 +321,13 @@ fun SearchScreen(books: List<Book>, back: () -> Unit, go: (String) -> Unit) {
     ) {
         item("search") {
             Top("Buscar", back, { go("menu") })
-            OutlinedTextField(
+            SoftField(
                 query,
                 { query = it },
                 Modifier.fillMaxWidth(),
                 placeholder = { Text("Buscar pelo nome do PDF...") },
                 singleLine = true,
-                shape = CircleShape,
-            )
+                )
             Caption("Seus PDFs", Modifier.padding(vertical = 20.dp))
         }
         items(found, key = { it.id }) { doc -> DocumentRow(doc, { go("book/${doc.id}") }, null) }

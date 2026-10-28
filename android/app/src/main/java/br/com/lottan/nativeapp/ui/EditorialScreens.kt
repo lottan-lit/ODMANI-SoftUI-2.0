@@ -51,7 +51,7 @@ fun EditorialExplore(catalog: EditorialCatalog, back: () -> Unit, menu: () -> Un
                     Column { Text(highlight.title, color = Ink, fontSize = 22.sp); Caption(highlight.author); Text(highlight.price, color = Ink); Caption(highlight.availability) }
                 }
             }
-            OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), label = { Text("Buscar título ou autor") }, singleLine = true)
+            SoftField(query, { query = it }, Modifier.fillMaxWidth(), label = { Text("Buscar título ou autor") }, singleLine = true)
             Row(Modifier.horizontalScroll(rememberScrollState())) {
                 (listOf("Todos") + catalog.publications.map { it.genre }.filter { it.isNotBlank() }.distinct()).forEach { g -> FilterChip(selected = g == genre, onClick = { genre = g }, label = { Text(g) }) }
             }

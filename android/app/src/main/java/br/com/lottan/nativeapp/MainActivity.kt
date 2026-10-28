@@ -32,7 +32,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val vm: LibraryViewModel = viewModel()
-            LaunchedEffect(incoming) { incoming?.let { uri -> vm.import(uri); incoming = null } }
             val prefs by vm.prefs.collectAsStateWithLifecycle()
             val dark = prefs.theme in listOf("dark", "graphite") || (prefs.theme == "system" && isSystemInDarkTheme())
             SideEffect {
@@ -48,7 +47,9 @@ class MainActivity : ComponentActivity() {
                 }
                 window.decorView.setBackgroundColor(VisualTokens.palette(dark).background.toArgb())
             }
-            LottanTheme(dark, prefs.theme == "graphite", prefs.textSize / 18f, prefs.highContrast) { LottanApp(vm) }
+            // Animations run only when the app option is on and Android has not disabled animations system-wide.
+            val systemAnimations = android.provider.Settings.Global.getFloat(contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
+            LottanTheme(dark, prefs.theme == "graphite", prefs.textSize / 18f, prefs.highContrast, prefs.animations && systemAnimations) { LottanApp(vm, incoming) { incoming = null } }
         }
     }
 }

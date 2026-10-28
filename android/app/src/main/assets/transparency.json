@@ -1,0 +1,282 @@
+{
+  "id": "TR",
+  "version": "1.0",
+  "prepared": "26/10/2026",
+  "effective": "Pendente de aprovação institucional",
+  "status": "Revisão jurídica e institucional pendente",
+  "title": "Transparência e responsabilidade",
+  "description": "Conheça as diretrizes que orientam o funcionamento do ODMANI, a utilização de documentos pessoais e a proteção das obras disponibilizadas pela Lottan.",
+  "sources": [
+    {
+      "id": "lda",
+      "title": "Lei nº 9.610/1998 — Direitos Autorais",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l9610.htm"
+    },
+    {
+      "id": "lgpd",
+      "title": "Lei nº 13.709/2018 — LGPD (texto atualizado)",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm"
+    },
+    {
+      "id": "cdc",
+      "title": "Lei nº 8.078/1990 — Código de Defesa do Consumidor",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l8078compilado.htm"
+    },
+    {
+      "id": "cc",
+      "title": "Lei nº 10.406/2002 — Código Civil",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/2002/l10406compilada.htm"
+    },
+    {
+      "id": "mci",
+      "title": "Lei nº 12.965/2014 — Marco Civil da Internet",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l12965.htm"
+    }
+  ],
+  "sections": [
+    {
+      "id": "personal",
+      "title": "Documentos pessoais e responsabilidade",
+      "blocks": [
+        {
+          "heading": "Âmbito e definições",
+          "text": "Documento pessoal é o PDF escolhido pelo usuário para sua biblioteca local, inclusive material próprio, profissional, de estudo ou de terceiros. A expressão descreve a origem da importação: não significa que o arquivo contenha somente dados da própria pessoa ou que ela seja sua autora. Obras identificadas como oficiais no catálogo editorial da Lottan constituem uma categoria distinta. Um título, nome de arquivo ou capa não comprova autenticidade ou autorização."
+        },
+        {
+          "heading": "Importação e alcance da verificação",
+          "text": "O seletor do Android fornece acesso ao arquivo escolhido. O ODMANI cria uma cópia privada para leitura; não modifica o original. A validação implementada verifica condições técnicas de PDF, tamanho e abertura, e não a licitude, a veracidade ou a titularidade do conteúdo. Importar um PDF não representa publicação pela AUDMANI ou pela Lottan, aprovação editorial ou certificação de sua origem. A biblioteca pessoal não é enviada a uma moderação remota por este fluxo."
+        },
+        {
+          "heading": "Origem, autorização e contextos de uso",
+          "text": "Antes de importar, confira de onde recebeu o material e quais usos foram autorizados. Guarde, quando pertinente, a licença, autorização, comprovante de aquisição ou indicação de domínio público. Exemplos de documentos apropriados ao leitor incluem um manuscrito próprio, um manual liberado pelo titular e um relatório que a organização autorize você a consultar. O contexto privado, escolar ou profissional não substitui, por si só, a análise da autorização e dos direitos envolvidos. Material de clientes, colegas ou pacientes também pode exigir cuidados de confidencialidade e proteção de dados."
+        },
+        {
+          "heading": "Responsabilidades proporcionais",
+          "text": "O usuário decide quais arquivos importar e deve considerar sua origem e o acesso de terceiros ao aparelho. Isso não transfere automaticamente para ele toda responsabilidade por defeitos do software, informações inadequadas, incidentes imputáveis ao fornecedor ou violações que não praticou. A distribuição de responsabilidades deve considerar o fato, o nexo e o regime legal aplicável. O aviso de importação informa a distinção entre acervo pessoal e editorial; não é um termo geral de exoneração."
+        },
+        {
+          "heading": "Providências diante de dúvida ou uso indevido",
+          "text": "Se a autorização de um documento for duvidosa, interrompa o uso controvertido e busque esclarecimento com sua origem ou titular. A remoção disponível na biblioteca elimina a cópia local do PDF, não arquivos mantidos em outros aplicativos. Não encaminhe documentos sigilosos ao canal de feedback para demonstrar uma falha: descreva o comportamento e, quando possível, use um exemplo sem dados reais. O aplicativo não dispõe de acesso administrativo remoto para examinar ou apagar bibliotecas pessoais."
+        },
+        {
+          "heading": "Fundamentação e pertinência",
+          "text": "Código Civil, arts. 186, 187 e 927: conduta ilícita, abuso e reparação dependem do enquadramento do fato. Arts. 422 e 424: boa-fé e limites à renúncia em contratos de adesão. Essas regras impedem tratar o simples ato de importar como transferência universal de riscos. Esta seção não decide responsabilidades de um caso concreto."
+        }
+      ],
+      "sources": [
+        "cc"
+      ]
+    },
+    {
+      "id": "prohibited",
+      "title": "Conteúdos e utilizações proibidas",
+      "blocks": [
+        {
+          "heading": "Regra de utilização e distinções",
+          "text": "A orientação institucional é utilizar o ODMANI para leitura e organização legítimas. Não o utilize deliberadamente para lesar terceiros, explorar material obtido indevidamente, introduzir arquivos maliciosos ou tentar comprometer o aplicativo e o dispositivo. Esta orientação não cria fiscalização automática nem um catálogo secreto de assuntos proibidos. Documentos sobre saúde, política, religião, sexualidade ou outros temas sensíveis não são ilícitos apenas pelo tema."
+        },
+        {
+          "heading": "Posse, leitura, cópia e circulação",
+          "text": "São situações diferentes receber ou manter um arquivo, consultá-lo, produzir outra cópia e disponibilizá-lo a outras pessoas. O fluxo de importação realiza cópia para uso no leitor; a existência dessa função não declara permitida qualquer reprodução. O aplicativo não oferece nesta atualização rede de distribuição pública, publicação da biblioteca pessoal ou marketplace. Uma ação realizada fora dele — por exemplo, vender ou enviar um PDF por outro serviço — não se torna autorizada por ter sido precedida de leitura no ODMANI."
+        },
+        {
+          "heading": "Proteção de terceiros e exceções",
+          "text": "A Lei de Direitos Autorais, art. 29, trata das utilizações sujeitas a autorização; o art. 46 contém limitações específicas. A finalidade educacional ou a ausência de lucro não autorizam genericamente a cópia integral de qualquer livro. O art. 46, II e III, distingue pequenos trechos para uso privado nas condições legais e citações justificadas com autoria e origem. Examine a hipótese concreta, inclusive licenças abertas e outras permissões aplicáveis, antes de concluir que uma conduta é proibida."
+        },
+        {
+          "heading": "Segurança e exemplos",
+          "text": "Não é apropriado fornecer propositalmente um arquivo preparado para explorar vulnerabilidades, tentar ler dados de outro aplicativo ou apresentar um PDF de terceiros como publicação oficial da Lottan. Um PDF corrompido recebido de boa-fé, por outro lado, é inicialmente uma ocorrência técnica, não prova de abuso. Use arquivos de origem confiável; diante de comportamento suspeito, feche o documento e preserve as informações necessárias para relatar o problema sem expor conteúdo confidencial."
+        },
+        {
+          "heading": "Limites de atuação",
+          "text": "Não há varredura jurídica de PDFs pessoais, análise de temas ou sistema remoto de sanções nesta atualização. As rejeições automáticas existentes decorrem das verificações técnicas descritas nesta central. Notificações sobre uma obra oficial devem identificar a obra e a alegação, evitando o envio indiscriminado de dados de terceiros. Providências jurídicas ou relativas a publicações externas dependem dos responsáveis e meios competentes; não se promete bloqueio remoto de arquivos privados."
+        }
+      ],
+      "sources": [
+        "lda"
+      ]
+    },
+    {
+      "id": "copyright",
+      "title": "Direitos autorais e licenças Lottan",
+      "blocks": [
+        {
+          "heading": "Obra, autoria e autorização",
+          "text": "Uma obra intelectual não se confunde com o arquivo que a contém. Os arts. 22 e 24 da Lei nº 9.610/1998 distinguem a proteção patrimonial da autoria e integridade. Pelo art. 37, adquirir um exemplar não transfere automaticamente direitos patrimoniais. Licenciamento e cessão devem ser examinados no instrumento correspondente; o art. 49 disciplina seus limites. Não se presume titularidade da Lottan sobre todos os PDFs que o usuário consiga importar."
+        },
+        {
+          "heading": "Como identificar o acervo editorial",
+          "text": "A origem editorial no aplicativo é um metadado próprio do catálogo oficial, separado da origem pessoal. Confira título, autoria, edição e informações efetivamente apresentadas no catálogo. Um arquivo pessoal chamado “Lottan” continua sendo pessoal se não vier identificado pelo fluxo editorial. Não há garantia técnica universal de autenticidade baseada apenas no nome ou na capa. A central não certifica que uma obra específica já tenha sido licenciada, vendida ou disponibilizada."
+        },
+        {
+          "heading": "Condições de acesso ainda não fornecidas",
+          "text": "Não foram fornecidos instrumentos contratuais das obras oficiais para definir prazos de acesso, número de aparelhos, preço, download, compartilhamento, reprodução integral ou exploração comercial. Esses campos dependem de confirmação editorial e revisão jurídica antes de oferta pública. Não se acrescenta aqui uma licença de obra inexistente nem uma proibição absoluta de toda cópia. O usuário deve consultar as condições da publicação concreta e suas permissões legais; em caso de lacuna, solicitar esclarecimento ao titular ou responsável indicado na obra."
+        },
+        {
+          "heading": "Cópias, exceções e exemplos",
+          "text": "Uma citação para crítica não equivale a redistribuir o PDF completo. As limitações legais devem ser consideradas com suas condições e a finalidade da utilização, sem transformá-las em autorização ilimitada ou suprimi-las por uma frase genérica da plataforma. Materiais próprios ou efetivamente abertos podem possuir permissões diferentes de uma obra reservada. O ODMANI não implementa nesta atualização empréstimo digital, gestão de prazos de empréstimo ou um mecanismo contratualmente definido para transferência de licenças; não se promete essas possibilidades."
+        },
+        {
+          "heading": "Proteção e consequências possíveis",
+          "text": "O art. 102 da Lei nº 9.610/1998 prevê medidas civis relativas à utilização fraudulenta e indenização cabível. A consequência concreta depende dos fatos, dos direitos e da atuação competente, não de uma multa automática criada pelo aplicativo. Não se presume infração por falha de abertura ou por um título coincidente. Alegações de uso não autorizado devem ser tratadas com identificação da obra, da titularidade alegada e da utilização discutida. O leitor não envia os PDFs privados à editora para verificar essas alegações."
+        }
+      ],
+      "sources": [
+        "lda"
+      ]
+    },
+    {
+      "id": "privacy",
+      "title": "Privacidade e armazenamento",
+      "blocks": [
+        {
+          "heading": "Inventário verificado nesta versão",
+          "text": "A implementação local guarda a cópia PDF e gera metadados de nome, identificador local, tamanho, número de páginas, datas de inclusão e de abertura, posição e conclusão. Mantém pastas, categorias e vínculos; registra páginas qualificadas, sessões, tempo ativo e totais diários conforme as configurações. Notas, checklist, páginas vinculadas, fixados, metas, preferências de tema/leitura e versão do aviso informativo ficam no armazenamento local. Miniaturas e capas de pastas também podem ser geradas. Esse inventário não significa que todo arquivo contenha dados pessoais: isso depende do conteúdo e da possibilidade de identificar alguém."
+        },
+        {
+          "heading": "Finalidades e meios",
+          "text": "PDFs e miniaturas permitem abrir e reconhecer documentos; metadados permitem organizar e retomar; eventos de leitura alimentam metas e estatísticas; notas e tarefas compõem o espaço do documento. Preferências mantêm as escolhas e o registro do aviso evita sua repetição. Room/SQLite e DataStore são usados em áreas do aplicativo. O seletor de documentos do Android concede acesso ao arquivo escolhido; o manifesto não declara acesso geral ao armazenamento nem permissão INTERNET. Não há cadastro de conta nesta implementação."
+        },
+        {
+          "heading": "Transmissões e terceiros: alcance exato",
+          "text": "As rotinas verificadas importam e renderizam localmente. Não existe nesse fluxo envio de PDFs a servidor da AUDMANI ou da Lottan. Isso não autoriza afirmar que nenhum dado jamais sai do aparelho: o seletor pode acessar provedores do sistema, inclusive serviços em nuvem escolhidos pelo usuário; links oficiais são abertos por navegador externo; mensagens de feedback passam pelo aplicativo de e-mail que a pessoa utilizar. Android, navegador, e-mail e provedores externos possuem comportamentos próprios. A central e seu conteúdo não dependem de carregamento remoto; somente a abertura voluntária das fontes oficiais usa outro aplicativo e pode exigir conexão."
+        },
+        {
+          "heading": "Alcance do Marco Civil da Internet",
+          "text": "A Lei nº 12.965/2014, art. 5º, VII, define aplicações de internet a partir de funcionalidades acessadas por terminal conectado. A leitura local não deve ser confundida com publicação de PDFs em uma plataforma de circulação pública. Os princípios de privacidade e proteção de dados do art. 3º, II e III, são pertinentes à avaliação de serviços conectados eventualmente utilizados fora do leitor. Esta central não deduz dessas definições imunidade geral para fornecedores nem aplica automaticamente ao acervo offline um regime de moderação de conteúdo publicado por terceiros."
+        },
+        {
+          "heading": "Retenção, exclusão e limites reais",
+          "text": "A biblioteca não define prazo automático de expiração dos PDFs. Remover um documento exclui sua cópia privada e os vínculos/páginas únicas correspondentes; a interface também solicita remoção da miniatura. O histórico diário, eventos de sessão e notas/checklists armazenados separadamente não são integralmente apagados por esse comando. Não há botão implementado de exportação ou eliminação individual de todo esse histórico. Limpar os dados do aplicativo pelo Android ou desinstalá-lo pode eliminar seu conjunto local; preserve antes os originais por meios próprios. Nenhuma dessas ações elimina cópias em provedores externos. Backup automático e transferência de dados estão desabilitados nas configurações declaradas do aplicativo; isso não substitui a avaliação do aparelho e de seus outros serviços."
+        },
+        {
+          "heading": "LGPD e enquadramento a confirmar",
+          "text": "A LGPD, arts. 5º e 6º, orienta conceitos e princípios; o art. 4º, I, delimita o uso exclusivamente particular e não econômico de pessoa natural. Essa exceção não deve ser estendida automaticamente a fornecedores ou usos profissionais. Para operações do responsável que se enquadrem na LGPD, a hipótese do art. 7º, V, pode ser pertinente à execução solicitada pelo titular; obrigações legais e exercício de direitos dependem das hipóteses dos incisos II e VI. Dados sensíveis exigem avaliação própria do art. 11. O enquadramento definitivo por operação e a identidade do controlador estão pendentes de validação institucional: não se declara uma base única ou consentimento genérico para toda informação que apareça em PDFs."
+        },
+        {
+          "heading": "Segurança e solicitações",
+          "text": "O isolamento privado do Android, a validação de PDF em processo isolado e a ausência de permissão INTERNET são medidas técnicas identificadas, não certificação de invulnerabilidade. Não foi implementada criptografia adicional própria do banco ou dos PDFs. Acesso físico, sistema comprometido e cópias externas exigem cautela. Os arts. 18 e 46 da LGPD fundamentam direitos e proteção no âmbito aplicável. O canal específico de privacidade e o responsável precisam ser preenchidos na seção institucional antes da publicação; o endereço de feedback existente não é apresentado como encarregado nem como central formal de atendimento a titulares."
+        }
+      ],
+      "sources": [
+        "lgpd",
+        "mci"
+      ]
+    },
+    {
+      "id": "security",
+      "title": "Segurança e limitações técnicas",
+      "blocks": [
+        {
+          "heading": "Compatibilidade e processamento",
+          "text": "Esta versão requer Android 8 ou posterior e utiliza o renderizador de PDF do sistema. A importação aceita PDFs de até 200 MB, verifica sua abertura e rejeita documentos protegidos por senha no fluxo implementado. Não é um editor universal, conversor de formatos ou ferramenta de remoção de proteção. Uma extensão .pdf não basta para garantir que o arquivo seja válido, seguro ou compatível. Problemas podem decorrer de estrutura corrompida, recursos específicos do PDF ou do renderizador do aparelho."
+        },
+        {
+          "heading": "Medidas existentes e seus limites",
+          "text": "A cópia é escrita inicialmente em arquivo parcial; falhas de importação tentam remover os arquivos incompletos. A validação executa em serviço de processo isolado, e a renderização é serializada com cache limitado. Essas medidas reduzem riscos determinados, mas não constituem antivírus, auditoria do conteúdo ou proteção absoluta. Há tratamento de erros de abertura/renderização e insuficiência de memória; isso não elimina falhas do Android ou de hardware. Não há monitoramento remoto contínuo da biblioteca."
+        },
+        {
+          "heading": "Integridade, disponibilidade e armazenamento",
+          "text": "A leitura de documentos já importados e desta central é local. A seleção de um arquivo hospedado em um provedor externo pode depender de conexão. Falta de espaço, encerramento abrupto, corrupção de armazenamento, revogação de acesso ao original e alterações no sistema podem afetar o fluxo. Mantenha uma cópia independente dos documentos importantes; não trate a biblioteca como o único arquivo de documentos insubstituíveis. A recomendação de cópia não transfere ao usuário responsabilidade por falhas imputáveis ao fornecedor."
+        },
+        {
+          "heading": "Atualizações e cuidados operacionais",
+          "text": "Atualizações devem manter a identificação do pacote e uma assinatura compatível para instalar sobre a versão anterior. Uma desinstalação ou limpeza de dados não equivale a atualização e pode apagar a biblioteca. Confira a origem do APK e a versão antes de instalar; a central não promete uma rotina automática de atualização, calendário de correções ou suporte a toda combinação de aparelho/PDF. Se uma atualização falhar, evite apagar dados como primeira tentativa e relate versão, aparelho e passos sem incluir documentos confidenciais."
+        },
+        {
+          "heading": "Limites jurídicos de uma explicação técnica",
+          "text": "Informar limitações conhecidas não autoriza excluir direitos obrigatórios. O CDC, arts. 6º, III, 14 e 25, trata de informação, defeitos do serviço e limites de exoneração quando houver relação de consumo. Não se promete disponibilidade ininterrupta nem se impõe renúncia prévia a reparação cabível. A incidência concreta depende do contexto, inclusive de quem fornece o produto ou serviço. Esta central não presume que a palavra “gratuito” resolva todo enquadramento jurídico."
+        }
+      ],
+      "sources": [
+        "cdc"
+      ]
+    },
+    {
+      "id": "rights",
+      "title": "Direitos dos usuários",
+      "blocks": [
+        {
+          "heading": "Informação e autonomia",
+          "text": "As telas e esta central devem permitir compreender o que está instalado e distinguir funções atuais de anúncios futuros. O usuário pode consultar a versão do APK, as limitações de importação, a organização local e o significado do aviso. Esta atualização não condiciona a leitura das regras a uma conta nem implementa aceite contratual forçado. As informações verificadas são separadas dos dados institucionais ainda faltantes para que sua ausência não seja disfarçada como confirmação."
+        },
+        {
+          "heading": "Consumo e proteção contratual",
+          "text": "Na incidência do CDC, o art. 6º assegura informação e proteção contra práticas abusivas; o art. 51 limita cláusulas incompatíveis com essa proteção. Esta documentação não cria exclusão total de responsabilidade, arbitragem compulsória ou obrigação de renunciar à reclamação. A aquisição de conteúdo por outro canal deve ser examinada com sua oferta e condições próprias; o leitor local não cria, sozinho, um contrato de venda de todos os documentos pessoais importados."
+        },
+        {
+          "heading": "Dados e possibilidades disponíveis",
+          "text": "O usuário consegue consultar documentos e suas notas, editar títulos e tarefas e remover a cópia do PDF pela biblioteca. Essas funções não equivalem a um portal de direitos de dados completo: não há exportador geral, sincronização ou atendimento remoto embutido. Pedidos de confirmação, acesso, correção, eliminação ou outros direitos legais devem identificar o tratamento e seu responsável, respeitando as hipóteses e limites aplicáveis. A eliminação não é irrestrita em toda situação: a LGPD, art. 16, prevê hipóteses de conservação. O art. 8º, §5º, trata da revogação quando o consentimento for a base efetivamente utilizada."
+        },
+        {
+          "heading": "Como relatar um problema sem exposição desnecessária",
+          "text": "Registre versão do aplicativo, modelo do aparelho, tela, data aproximada e passos para reproduzir. Se precisar de captura, oculte nomes, dados de terceiros e trechos de obras que não deva divulgar. Para discutir direito sobre uma obra, indique título e relação com a alegação; para dados pessoais, descreva a operação e o direito solicitado. Não envie senhas nem bibliotecas inteiras. O canal de feedback informado no projeto pode receber comunicação técnica, mas não se promete prazo, protocolo ou fluxo jurídico que ainda não foi instituído."
+        },
+        {
+          "heading": "Solicitações, reclamações e pendências",
+          "text": "A inexistência de um formulário próprio não extingue direitos. Os meios externos competentes podem ser utilizados conforme o problema e seus requisitos; esta central não cria barreiras ao acesso a esses meios. A identificação do responsável jurídico e o canal de privacidade estão sinalizados na seção 8 como pendentes para publicação. Não há aqui designação fictícia de encarregado, procedimento de validação de identidade implantado ou compromisso de cumprimento por um serviço remoto inexistente. A revisão institucional deve completar esses pontos antes de anunciar atendimento formal."
+        }
+      ],
+      "sources": [
+        "cdc",
+        "lgpd"
+      ]
+    },
+    {
+      "id": "updates",
+      "title": "Atualizações das regras",
+      "blocks": [
+        {
+          "heading": "Versão documental e versão do aplicativo",
+          "text": "O documento tem identificador TR-1.0 e data de preparação de 26/10/2026. A data de vigência institucional permanece pendente de aprovação; a preparação ou instalação do APK não preenche esse campo. O aplicativo possui identificação pública própria, exibida separadamente. Uma mudança de código Android não representa, por si só, alteração de contrato, licença de obra ou finalidade de tratamento."
+        },
+        {
+          "heading": "Estado desta edição e comunicação",
+          "text": "Esta é uma redação integral para revisão jurídica e institucional, baseada na implementação e nas fontes consultadas. As pendências explicitadas não devem ser interpretadas como condições já aprovadas. O conteúdo incluído no APK pode ser consultado offline. Nesta atualização não há serviço remoto de entrega de políticas, notificação automática de mudança jurídica ou repositório navegável de todas as versões anteriores. Por isso, não se promete uma comunicação que o aplicativo ainda não realiza. Uma edição institucional posterior deve identificar os pontos alterados e o meio de comunicação efetivamente adotado."
+        },
+        {
+          "heading": "Aviso informativo, aceite e consentimento",
+          "text": "Antes da primeira importação pessoal coberta por esta versão, o usuário vê o aviso com acesso às regras. O DataStore guarda apenas o número da versão do aviso apresentado, para não repeti-lo em cada importação. “Continuar” inicia o fluxo técnico e não é registrado como assinatura de contrato, concordância com todas as cláusulas ou consentimento LGPD. “Ler regras completas” abre esta central e permite retornar à importação. O aviso pode voltar a ser apresentado se seus dados locais forem apagados ou se uma versão futura do aviso tiver justificativa para nova apresentação."
+        },
+        {
+          "heading": "Alterações materiais e direitos preservados",
+          "text": "Se houver no futuro outra finalidade de tratamento, contratação ou operação que exija manifestação específica, será necessário avaliar o instrumento e o fluxo correspondentes antes de ativá-la. Não se presume concordância irrestrita pelo silêncio ou por continuar usando um leitor offline. A boa-fé e os limites dos contratos de adesão dos arts. 422 a 424 do Código Civil são pertinentes a essa avaliação; alterações não devem apagar direitos aplicáveis nem requalificar retroativamente o aviso informativo como consentimento. A revisão jurídica deve examinar o conteúdo e a comunicação de cada mudança relevante."
+        },
+        {
+          "heading": "Consulta e alcance temporal",
+          "text": "Para identificar o texto instalado, consulte o identificador documental, a data de preparação e o status no cabeçalho da central. Uma cópia incluída em outra versão do APK pode ter conteúdo diferente, mesmo mantendo o mesmo número público do aplicativo. Para controvérsias sobre uma oferta ou licença concreta, considere também o documento e o contexto correspondentes àquela relação. Esta central não substitui o registro de condições de uma aquisição externa nem cria um histórico contratual que o software não mantém."
+        }
+      ],
+      "sources": [
+        "cc"
+      ]
+    },
+    {
+      "id": "institution",
+      "title": "Contato e identificação institucional",
+      "blocks": [
+        {
+          "heading": "Papéis informados no projeto",
+          "text": "ODMANI é o nome do aplicativo de leitura e organização de PDFs. AUDMANI é a identificação apresentada pelo projeto como desenvolvedora. Lottan é a parceira editorial identificada no catálogo e nas telas. Esses nomes e papéis não comprovam, isoladamente, razão social, registro de marca, representação, titularidade de toda obra ou que as três identificações correspondam a uma única pessoa jurídica. Esta central não cria vínculo societário nem altera o nome do aplicativo no Android."
+        },
+        {
+          "heading": "Campos institucionais a completar antes da publicação",
+          "text": "Razão social do fornecedor/responsável: pendente de informação e validação. CNPJ, quando aplicável: pendente. Endereço institucional: pendente. Identificação do responsável jurídico por AUDMANI/ODMANI e da entidade editorial Lottan: pendente. E-mail institucional de atendimento jurídico: pendente. Canal de privacidade: pendente. Controlador das operações aplicáveis e contato do encarregado, quando cabível: pendentes. Esses campos não são fictícios nem devem ser preenchidos com o nome do desenvolvedor da interface por presunção."
+        },
+        {
+          "heading": "Canal de feedback já informado",
+          "text": "O endereço studio.47.agencia.co@gmail.com foi informado no projeto como contato de feedback da Studio 47, assim como studio47.ux no Instagram. É apresentado somente nesse contexto, não como prova de identidade jurídica da AUDMANI ou Lottan, nem como designação de controlador, encarregado ou central formal de exercício de direitos. O aplicativo não envia mensagens automaticamente. Se utilizar seu e-mail ou rede social, o envio passa pelo serviço externo escolhido e suas condições próprias. Evite anexar PDFs privados ou dados de terceiros sem necessidade."
+        },
+        {
+          "heading": "Informações a acompanhar cada publicação editorial",
+          "text": "Uma obra oficial deve ser acompanhada pelas identificações e condições efetivamente confirmadas pelo responsável editorial, incluindo autoria, edição e alcance da autorização pertinente. Esta central não preenche ISBN, titularidade, contrato de licença ou condições de empréstimo por suposição. Não existe nessa versão um serviço de empréstimo digital implementado. A identificação completa dos participantes e instrumentos ainda deve ser consolidada pela organização antes de lançar ofertas que dependam dessas informações."
+        },
+        {
+          "heading": "Controle documental e condição de publicação",
+          "text": "Documento TR-1.0. Preparado em 26/10/2026. Fontes oficiais consultadas nessa data. Vigência: pendente de aprovação jurídica e institucional. A implementação pode ser testada localmente, mas essa entrega não é uma declaração de revisão por profissional habilitado, de regularidade cadastral ou de aprovação definitiva das condições editoriais. Os responsáveis devem confirmar os campos acima, a matriz de tratamento e bases legais, as licenças de obras e os canais formais antes de publicação pública da documentação. Informações técnicas confirmadas continuam distinguíveis das pendências; direitos legais aplicáveis não ficam suspensos por esse status."
+        }
+      ],
+      "sources": []
+    }
+  ]
+}

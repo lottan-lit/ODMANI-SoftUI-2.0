@@ -6,6 +6,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.*
 import br.com.lottan.nativeapp.data.Preferences
@@ -161,6 +163,22 @@ fun DemoReader(
     }
 }
 
+/** Three side-by-side areas with the real theme tokens: Preto absoluto, Grafite and Claro off-white. */
+@Composable
+private fun AutomaticThemePreview() {
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+    Row(Modifier.fillMaxWidth().height(64.dp).clip(shape).testTag("theme-auto-preview")) {
+        listOf(VisualTokens.Dark, VisualTokens.Graphite, VisualTokens.Light).forEach { palette ->
+            Column(Modifier.weight(1f).fillMaxHeight().background(palette.background).padding(horizontal = 6.dp, vertical = 12.dp)) {
+                repeat(3) { index ->
+                    Box(Modifier.fillMaxWidth(if (index == 2) .5f else .85f).height(3.dp).background(palette.muted))
+                    Spacer(Modifier.height(7.dp))
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun ThemePicker(theme: String, select: (String) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -169,7 +187,8 @@ fun ThemePicker(theme: String, select: (String) -> Unit) {
                 row.forEach { (key, label) ->
                     val palette = when (key) { "dark" -> VisualTokens.Dark; "graphite" -> VisualTokens.Graphite; else -> VisualTokens.Light }
                     Column(Modifier.weight(1f).glass(LocalDark.current, 12).clickable { select(key) }.padding(12.dp)) {
-                        Box(Modifier.fillMaxWidth().height(64.dp).background(palette.background, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))) {
+                        if (key == "system") AutomaticThemePreview()
+                        else Box(Modifier.fillMaxWidth().height(64.dp).background(palette.background, androidx.compose.foundation.shape.RoundedCornerShape(8.dp))) {
                             Column(Modifier.padding(12.dp)) {
                                 repeat(3) { index ->
                                     Box(Modifier.fillMaxWidth(if (index == 2) .5f else .85f).height(3.dp).background(palette.muted))
@@ -178,6 +197,7 @@ fun ThemePicker(theme: String, select: (String) -> Unit) {
                             }
                         }
                         Text(label, Modifier.padding(top = 8.dp), fontSize = 12.sp, color = Ink)
+                        if (key == "system") Text("Acompanha o tema claro ou escuro do dispositivo.", fontSize = 12.sp, lineHeight = 16.sp, color = Muted)
                         Text(if (theme == key) "✓ Selecionado" else "Selecionar", fontSize = 12.sp, color = Muted)
                     }
                 }

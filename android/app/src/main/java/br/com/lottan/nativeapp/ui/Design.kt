@@ -3,6 +3,11 @@ package br.com.lottan.nativeapp.ui
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
@@ -11,6 +16,7 @@ import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.*
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
@@ -22,8 +28,64 @@ val Ink: Color
 val Muted: Color
     @Composable get() = LocalVisual.current.muted
 
+/** Global switch for functional UI transitions (menu option + Android "remove animations"). */
+val LocalAnimations = staticCompositionLocalOf { true }
+
+/** Fast, soft transitions. With animations off every spec snaps instantly. */
 @Composable
-fun LottanTheme(dark: Boolean, graphite: Boolean = false, uiScale: Float = 1f, highContrast: Boolean = false, content: @Composable () -> Unit) {
+fun <T> softTween(millis: Int = 160): FiniteAnimationSpec<T> = if (LocalAnimations.current) tween(millis, easing = FastOutSlowInEasing) else snap()
+
+/** One typographic scale for every screen: titles of equivalent level look identical everywhere. */
+object AppText {
+    val Screen = androidx.compose.ui.text.TextStyle(fontSize = 24.sp, lineHeight = 30.sp, fontWeight = FontWeight.SemiBold)
+    val Card = androidx.compose.ui.text.TextStyle(fontSize = 18.sp, lineHeight = 24.sp, fontWeight = FontWeight.Medium)
+    val Subtitle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.Medium)
+    val Info = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, lineHeight = 21.sp, fontWeight = FontWeight.Normal)
+}
+
+@Composable
+fun ScreenTitle(text: String, modifier: Modifier = Modifier, maxLines: Int = 2) =
+    Text(text, modifier, color = Ink, style = AppText.Screen, maxLines = maxLines, overflow = TextOverflow.Ellipsis)
+
+/** Titles of cards and home/stat sections (Últimos 7 dias, Suas metas, Seu ritmo, PDFs pessoais...). */
+@Composable
+fun CardTitle(text: String, modifier: Modifier = Modifier, maxLines: Int = 2) =
+    Text(text, modifier, color = Ink, style = AppText.Card, maxLines = maxLines, overflow = TextOverflow.Ellipsis)
+
+@Composable
+fun SubtitleText(text: String, modifier: Modifier = Modifier) = Text(text, modifier, color = Ink, style = AppText.Subtitle)
+
+@Composable
+fun InfoText(text: String, modifier: Modifier = Modifier) = Text(text, modifier, color = Ink, style = AppText.Info)
+
+/** Reference field style taken from Metas de leitura: 20 dp corners, thin border, theme colours, same label spacing. */
+@Composable
+fun SoftField(
+    value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true,
+    label: (@Composable () -> Unit)? = null, placeholder: (@Composable () -> Unit)? = null, supportingText: (@Composable () -> Unit)? = null, isError: Boolean = false,
+    singleLine: Boolean = false, minLines: Int = 1, maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default, keyboardActions: KeyboardActions = KeyboardActions.Default,
+    trailingIcon: (@Composable () -> Unit)? = null,
+) {
+    val p = LocalVisual.current
+    OutlinedTextField(
+        value, onValueChange, modifier, enabled = enabled, shape = RoundedCornerShape(20.dp),
+        textStyle = AppText.Info.copy(color = if (enabled) p.text else p.muted),
+        label = label, placeholder = placeholder,
+        supportingText = supportingText, isError = isError, singleLine = singleLine,
+        minLines = minLines, maxLines = maxLines, keyboardOptions = keyboardOptions, keyboardActions = keyboardActions,
+        trailingIcon = trailingIcon,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = p.text, unfocusedBorderColor = p.border, disabledBorderColor = p.border.copy(alpha = .5f),
+            focusedContainerColor = p.surface, unfocusedContainerColor = p.surface, disabledContainerColor = p.surface,
+            errorContainerColor = p.surface, cursorColor = p.text,
+            focusedLabelColor = p.text, unfocusedLabelColor = p.muted, disabledLabelColor = p.muted.copy(alpha = .6f),
+        ),
+    )
+}
+
+@Composable
+fun LottanTheme(dark: Boolean, graphite: Boolean = false, uiScale: Float = 1f, highContrast: Boolean = false, animations: Boolean = true, content: @Composable () -> Unit) {
     val basePalette = if (graphite) VisualTokens.Graphite else VisualTokens.palette(dark)
     val p = if (highContrast) basePalette.copy(muted = basePalette.text, border = basePalette.text.copy(alpha = .45f)) else basePalette
     val base = if (dark) darkColorScheme() else lightColorScheme()
@@ -99,7 +161,7 @@ fun LottanTheme(dark: Boolean, graphite: Boolean = false, uiScale: Float = 1f, h
                 ),
         )
     val density = androidx.compose.ui.platform.LocalDensity.current
-    CompositionLocalProvider(LocalDark provides dark, LocalVisual provides p,
+    CompositionLocalProvider(LocalDark provides dark, LocalVisual provides p, LocalAnimations provides animations,
         androidx.compose.ui.platform.LocalDensity provides Density(density.density, density.fontScale * uiScale)) {
         MaterialTheme(colorScheme = scheme, typography = type, content = content)
     }
@@ -274,15 +336,7 @@ fun Top(title: String, back: (() -> Unit)?, menu: () -> Unit, showMenu: Boolean 
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         if (back != null) Icon("back", "Voltar", back) else Spacer(Modifier.width(44.dp))
-        Text(
-            title,
-            fontSize = VisualTokens.Subtitle,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
-            color = Ink,
-        )
+        ScreenTitle(title, Modifier.weight(1f).padding(horizontal = 8.dp))
         if (showMenu) Icon("menu", "Abrir menu", menu) else Spacer(Modifier.width(44.dp))
     }
 }
@@ -308,17 +362,15 @@ fun Segments(items: List<String>, selected: String, onSelect: (String) -> Unit) 
         Modifier.fillMaxWidth().padding(vertical = 16.dp).glass(LocalDark.current, 14).padding(4.dp)
     ) {
         items.forEach { label ->
+            val fill by animateColorAsState(if (selected == label) LocalVisual.current.primary else Color.Transparent, softTween(), label = "segment")
             TextButton(
                 { onSelect(label) },
                 Modifier.weight(1f)
-                    .background(
-                        if (selected == label) LocalVisual.current.primary else Color.Transparent,
-                        RoundedCornerShape(11.dp),
-                    ),
+                    .background(fill, RoundedCornerShape(11.dp)),
             ) {
                 Text(
                     label,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     color = if (selected == label) LocalVisual.current.onPrimary else Muted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -401,67 +453,31 @@ fun Cover(name: String, modifier: Modifier = Modifier, demo: Int = -1) {
 @Composable
 fun BottomNav(route: String, go: (String) -> Unit) {
     val p = LocalVisual.current
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Row(
-            Modifier.weight(1f, fill = false)
-                .widthIn(max = 236.dp)
-                .height(53.dp)
-                .glass(LocalDark.current, 30)
-                .padding(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            listOf("home" to "Início", "explore" to "Explorar", "stats" to "Atividade").forEach {
-                (id, label) ->
-                val active = route == id
-                val fg = if (active) p.onPrimary else p.muted
-                Row(
-                    Modifier.weight(if (active) 2.1f else 1f)
-                        .clip(CircleShape)
-                        .background(if (active) p.primary else Color.Transparent)
-                        .clickable { go(id) }
-                        .height(45.dp)
-                        .widthIn(min = 46.dp)
-                        .padding(horizontal = if (active) 12.dp else 10.dp)
-                        .semantics {
-                            contentDescription = label
-                            selected = active
-                            role = Role.Tab
-                        },
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    Glyph(id, modifier = Modifier.requiredSize(22.dp), tint = fg)
-                    if (active) {
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            label,
-                            modifier = Modifier.weight(1f),
-                            fontSize = 12.sp,
-                            color = fg,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val labels = maxWidth >= 380.dp && androidx.compose.ui.platform.LocalDensity.current.fontScale < 1.3f
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.weight(1f).testTag("main-nav-capsule").height(53.dp).glass(LocalDark.current, 30).padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                listOf("home" to "Home", "stats" to "Atividades", "library" to "Pastas", "explore" to "Explorar").forEach { (id, label) ->
+                    val active = route == id
+                    val fg = if (active) p.onPrimary else p.muted
+                    val weight by animateFloatAsState(if (active && labels) 2.1f else 1f, softTween(200), label = "nav-weight")
+                    val fill by animateColorAsState(if (active) p.primary else Color.Transparent, softTween(), label = "nav-fill")
+                    Row(Modifier.weight(weight).clip(CircleShape)
+                        .background(fill).clickable { go(id) }.height(45.dp)
+                        .padding(horizontal = 6.dp).semantics { contentDescription = label; selected = active; role = Role.Tab },
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                        Glyph(id, Modifier.requiredSize(22.dp), tint = fg)
+                        if (active && labels) {
+                            // Icon + label are one group centred in the bubble: the label takes only its own width.
+                            Spacer(Modifier.width(6.dp))
+                            Text(label, Modifier.weight(1f, fill = false), fontSize = 12.sp, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
                     }
                 }
             }
-        }
-        Spacer(Modifier.width(16.dp))
-        Box(
-            Modifier.size(53.dp)
-                .glass(LocalDark.current, 30)
-                .clickable { go("library") }
-                .semantics {
-                    contentDescription = "Biblioteca"
-                    selected = route == "library"
-                    role = Role.Tab
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            Glyph("library", tint = if (route == "library") p.text else p.muted)
+            Spacer(Modifier.width(16.dp))
+            Box(Modifier.size(53.dp).testTag("nav-add-pdf").glass(LocalDark.current, 30).clickable { go("import") }
+                .semantics { contentDescription = "Adicionar PDF"; role = Role.Button }, contentAlignment = Alignment.Center) { Glyph("add", tint = p.muted) }
         }
     }
 }

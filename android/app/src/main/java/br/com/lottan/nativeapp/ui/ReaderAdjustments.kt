@@ -19,7 +19,7 @@ private fun ReaderChoices(items: List<Pair<String, String>>, selected: String, o
     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         items.forEach { (key, label) ->
             FilterChip(selected = selected == key, onClick = { onSelect(key) },
-                label = { Text(label, fontSize = 12.sp) }, shape = RoundedCornerShape(20.dp))
+                label = { Text(label, fontSize = 12.sp) })
         }
     }
 }
@@ -41,7 +41,7 @@ fun ReaderAdjustments(
     var restore by remember { mutableStateOf(false) }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).imePadding().padding(16.dp), contentAlignment = Alignment.Center) {
-            Surface(Modifier.widthIn(max = 560.dp).fillMaxWidth().heightIn(max = maxHeight * .88f), shape = RoundedCornerShape(24.dp), color = LocalVisual.current.surface) {
+            Surface(Modifier.widthIn(max = 560.dp).fillMaxWidth().heightIn(max = maxHeight * .88f), color = LocalVisual.current.surface) {
                 Column {
                     Row(Modifier.fillMaxWidth().padding(start = 20.dp, top = 12.dp, bottom = 12.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -57,8 +57,7 @@ fun ReaderAdjustments(
                         val filters = listOf("Neutro" to Color.White, "Creme" to Color(0xffFFF0CB), "Off-white" to Color(0xffFAF9F6), "Sépia" to Color(0xffD8BC88), "Rosado" to Color(0xffF5DCE1))
                         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             filters.forEach { (name, color) ->
-                                FilterChip(selected = comfort.filter == name, onClick = { onChange(comfort.copy(filter = name)) }, shape = RoundedCornerShape(20.dp),
-                                    label = { Text(name, fontSize = 12.sp) }, leadingIcon = { Box(Modifier.size(14.dp).background(color, CircleShape).border(1.dp, LocalVisual.current.border, CircleShape)) })
+                                FilterChip(selected = comfort.filter == name, onClick = { onChange(comfort.copy(filter = name)) }, label = { Text(name, fontSize = 12.sp) }, leadingIcon = { Box(Modifier.size(14.dp).background(color, CircleShape).border(1.dp, LocalVisual.current.border, CircleShape)) })
                             }
                         }
                         Text("Intensidade do filtro · ${(comfort.intensity * 100).toInt()}%", color = Ink)
@@ -67,7 +66,7 @@ fun ReaderAdjustments(
                         Text("Fundo externo ao PDF", color = Ink)
                         ReaderChoices(listOf("Preto", "Grafite", "Cinza", "Papel", "Sépia", "Branco").map { it to it }, comfort.background) { onChange(comfort.copy(background = it)) }
                         val customError = custom.isNotEmpty() && !custom.matches(Regex("#[A-Fa-f0-9]{6}"))
-                        OutlinedTextField(custom, { value -> custom = value.take(7); if (custom.matches(Regex("#[A-Fa-f0-9]{6}"))) onChange(comfort.copy(background = custom)) }, Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), label = { Text("Cor personalizada #RRGGBB") }, singleLine = true, isError = customError)
+                        SoftField(custom, { value -> custom = value.take(7); if (custom.matches(Regex("#[A-Fa-f0-9]{6}"))) onChange(comfort.copy(background = custom)) }, Modifier.fillMaxWidth(), label = { Text("Cor personalizada #RRGGBB") }, singleLine = true, isError = customError)
 
                         ReaderSection("Exibição das páginas")
                         ReaderChoices(listOf("single" to "Página única", "vertical" to "Rolagem contínua", "" to "Global"), comfort.direction) { onChange(comfort.copy(direction = it)) }

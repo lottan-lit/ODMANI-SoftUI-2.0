@@ -1,5 +1,6 @@
 package br.com.lottan.nativeapp.ui
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -8,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -18,10 +20,13 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 
+/** Width : height of every library cover card (1 : 1.6). All grids share it so cards never change size with the cover. */
+const val CoverRatio = 1f / 1.6f
+
 /** Reusable surfaces; no blur or filter is ever applied to PDF pixels. */
 @Composable
 fun SoftCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier.glass(LocalDark.current, 24).padding(16.dp), content = content)
+    Column(modifier.glass(LocalDark.current, 24).padding(16.dp).animateContentSize(softTween()), content = content)
 }
 
 @Composable
@@ -30,10 +35,34 @@ fun SoftButton(label: String, enabled: Boolean = true, action: () -> Unit) {
         onClick = action,
         enabled = enabled,
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-        shape = CircleShape,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Text(label, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** Same "Ver tudo →" link everywhere: identical text, arrow icon, spacing and size. */
+@Composable
+fun SeeAll(action: () -> Unit) {
+    TextButton(onClick = action, contentPadding = PaddingValues(horizontal = 8.dp)) {
+        Text("Ver tudo", color = Muted, fontSize = 14.sp, maxLines = 1)
+        Spacer(Modifier.width(4.dp))
+        Glyph("forward", Modifier.size(16.dp), tint = Muted)
+    }
+}
+
+/** Secondary bordered action ("+ Adicionar", "+ Criar pasta"): rounded, discreet fill, icon and text aligned. */
+@Composable
+fun OutlineAction(label: String, modifier: Modifier = Modifier, glyph: String? = "add", enabled: Boolean = true, onClick: () -> Unit) {
+    val p = LocalVisual.current
+    OutlinedButton(
+        onClick, modifier.heightIn(min = 48.dp), enabled = enabled, shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, if (enabled) p.border else p.border.copy(alpha = .5f)),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = p.surface, contentColor = p.text, disabledContentColor = p.muted),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        if (glyph != null) { Glyph(glyph, Modifier.size(18.dp), tint = if (enabled) p.text else p.muted); Spacer(Modifier.width(8.dp)) }
+        Text(label, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -93,18 +122,8 @@ fun LibrarySection(
         Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            title,
-            Modifier.weight(1f),
-            color = Ink,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
-        TextButton(onClick = action) {
-            Text("Ver tudo", color = Muted, fontSize = 12.sp)
-            Spacer(Modifier.width(4.dp))
-            Glyph("forward", Modifier.size(16.dp))
-        }
+        CardTitle(title, Modifier.weight(1f), maxLines = 1)
+        SeeAll(action)
     }
     Caption(description, Modifier.padding(bottom = 12.dp))
     content()
@@ -141,14 +160,8 @@ fun SoftHome(
         }
         val doc = books.firstOrNull { it.id == workspace.main } ?: books.maxByOrNull { it.lastOpened.takeIf { n -> n > 0 } ?: it.added }
         if (doc != null) {
-            Text(
-                "Continuar lendo",
-                color = Ink,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(bottom = 12.dp),
-            )
-            SoftCard(Modifier.fillMaxWidth()) {
+            CardTitle("Continuar lendo", Modifier.padding(bottom = 12.dp))
+            SoftCard(Modifier.fillMaxWidth().testTag("continue-card").clickable { go("book/${doc.id}") }) {
                 BoxWithConstraints {
                     val narrow =
                         maxWidth < 310.dp ||
@@ -156,7 +169,7 @@ fun SoftHome(
                     if (narrow) {
                         Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            PdfCover(doc, Modifier.width(76.dp).height(112.dp))
+                            PdfCover(doc, Modifier.width(76.dp).aspectRatio(CoverRatio))
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 ContinueTitle(doc)
@@ -175,7 +188,7 @@ fun SoftHome(
                         }
                     } else
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            PdfCover(doc, Modifier.width(92.dp).height(140.dp))
+                            PdfCover(doc, Modifier.width(92.dp).aspectRatio(CoverRatio))
                             Spacer(Modifier.width(16.dp))
                             Column(Modifier.weight(1f)) {
                                 ContinueTitle(doc)
@@ -212,7 +225,7 @@ fun SoftHome(
         }
         if (preferences.showGoals) { Spacer(Modifier.height(24.dp)); GoalPanel(workspace, days) { go("goals") } }
         val pinned = books.filter { it.id in workspace.pinned }
-        if (pinned.isNotEmpty()) LibrarySection("Fixados", "Seus documentos favoritos", { go("library?origin=pinned") }) { BookShelf(pinned.take(3)) { go("book/$it") } }
+        if (pinned.isNotEmpty()) LibrarySection("Fixados", "Seus documentos favoritos", { go("library?origin=pinned") }) { BookShelf(pinned.take(3), Modifier.testTag("home-pinned")) { go("book/$it") } }
         val official = books.filter { it.origin == "lottan_verified" }
         LibrarySection(
             "Biblioteca Lottan",
@@ -224,16 +237,16 @@ fun SoftHome(
                     "Conteúdo editorial em breve",
                     "Nenhum documento oficial da parceira disponível neste celular.",
                 )
-            else BookShelf(official.take(3)) { go("book/$it") }
+            else BookShelf(official.take(3), Modifier.testTag("home-official")) { go("book/$it") }
         }
         val personal = books.filter { it.origin != "lottan_verified" }.sortedByDescending { maxOf(it.added, it.lastOpened) }
-        FlowRow(Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("PDFs pessoais", Modifier.widthIn(min = 120.dp), color = Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            TextButton(importPdf, enabled = !busy, contentPadding = PaddingValues(horizontal = 8.dp)) { Text("+ Adicionar", fontSize = 12.sp) }
-            TextButton({ go("library?origin=personal") }, contentPadding = PaddingValues(horizontal = 8.dp)) { Text("Ver tudo →", fontSize = 12.sp, color = Muted) }
+        Row(Modifier.fillMaxWidth().testTag("home-personal-header").padding(top = 24.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            CardTitle("PDFs pessoais", Modifier.weight(1f), maxLines = 1)
+            SeeAll { go("library?origin=personal") }
         }
-        if (personal.isEmpty()) Caption("Adicione seu primeiro PDF pelo botão + Adicionar.")
-        else BookShelf(personal.take(3)) { go("book/$it") }
+        OutlineAction("Adicionar", Modifier.padding(bottom = 12.dp).testTag("home-add-pdf"), enabled = !busy, onClick = importPdf)
+        if (personal.isEmpty()) Caption("Adicione seu primeiro PDF pelo botão Adicionar.")
+        else BookShelf(personal.take(3), Modifier.testTag("home-personal")) { go("book/$it") }
         Caption("Desenvolvido pela AUDMANI", Modifier.padding(top = 24.dp, bottom = 8.dp))
     }
 }
@@ -246,23 +259,23 @@ private fun ContinueTitle(book: Book) {
         fontSize = 16.sp,
         lineHeight = 21.sp,
         fontWeight = FontWeight.Medium,
-        maxLines = if (androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f) 1 else 2,
+        minLines = 2, maxLines = 2,
         overflow = TextOverflow.Ellipsis,
     )
 }
 
 @Composable
-fun PersonalBookCard(book: Book, open: () -> Unit) {
+fun PersonalBookCard(book: Book, columnWidth: androidx.compose.ui.unit.Dp? = null, open: () -> Unit) {
     val enlarged = androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f
-    val width = if (enlarged) 180.dp else 104.dp
-    Column(Modifier.width(width).clickable(onClick = open)) {
-        PdfCover(book, Modifier.width(width).height(if (enlarged) 200.dp else 144.dp))
+    val width = columnWidth ?: if (enlarged) 180.dp else 104.dp
+    Column(Modifier.width(width).testTag("home-card-${book.id}").clickable(onClick = open)) {
+        PdfCover(book, Modifier.width(width).then(if (columnWidth != null) Modifier.aspectRatio(CoverRatio) else Modifier.aspectRatio(CoverRatio)))
         Text(
             ReadingRules.title(book.name),
-            Modifier.padding(top = 8.dp),
+            Modifier.fillMaxWidth().padding(top = 8.dp),
             color = Ink,
-            fontSize = 12.sp,
-            maxLines = if (androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f) 1 else 2,
+            fontSize = 12.sp, lineHeight = 16.sp,
+            minLines = 2, maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
         Caption("${if (book.lastOpened == 0L) 0 else book.page+1} de ${book.pages}")
@@ -297,7 +310,7 @@ fun NativeBookDetails(
             return@Page
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            PdfCover(book, Modifier.width(112.dp).height(164.dp))
+            PdfCover(book, Modifier.width(112.dp).aspectRatio(CoverRatio))
             Column(Modifier.weight(1f)) {
                 Text(ReadingRules.title(book.name), color = Ink, fontSize = 22.sp, maxLines = 5, overflow = TextOverflow.Ellipsis)
                 Caption(if (book.origin == "lottan_verified") "Lottan" else "PDF pessoal · neste celular", Modifier.padding(vertical = 8.dp))
@@ -313,7 +326,7 @@ fun NativeBookDetails(
             Modifier.fillMaxWidth().padding(top = 24.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            SoftIconButton("library", "Organizar") { go("organize") }
+            SoftIconButton("library", "Organizar em pastas") { go("book-folders/${book.id}") }
             SoftIconButton("close", "Remover") { go("remove/${book.id}") }
         }
         DocumentActions(book, vm, workspace, go)
@@ -342,10 +355,13 @@ fun SoftStats(
     menu: () -> Unit,
     workspace: Workspace,
     vm: LibraryViewModel,
+    scale: () -> Unit,
     goals: () -> Unit,
 ) {
+    val preferences by vm.prefs.collectAsState()
     val sessions by vm.sessions.collectAsState()
     val unique by vm.uniquePages.collectAsState()
+    val categoryLinks by vm.categoryLinks.collectAsState()
     Page {
         Top("Estatísticas", back, menu, showMenu = true)
         val ms = days.sumOf { it.millis }
@@ -359,7 +375,7 @@ fun SoftStats(
                 Modifier.weight(1f),
             )
             ReadingStatsCard(
-                "Páginas visitadas",
+                "Páginas contabilizadas",
                 "${days.sumOf { it.visits }}",
                 Modifier.weight(1f),
             )
@@ -367,12 +383,15 @@ fun SoftStats(
         var metric by remember { mutableStateOf("Tempo") }
         SoftCard(Modifier.fillMaxWidth()) {
             Segments(listOf("Páginas", "Tempo"), metric) { metric = it }
-            Text("Últimos 7 dias", color = Ink, fontWeight = FontWeight.Medium)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                CardTitle("Últimos 7 dias", Modifier.weight(1f))
+                TextButton(scale) { Text("Configurar escala", fontSize = 12.sp) }
+            }
             val week = (6 downTo 0).map { LocalDate.now().minusDays(it.toLong()) }
             val durations =
                 week.map { date -> days.firstOrNull { it.date == date.toString() }?.let { if (metric == "Tempo") it.millis else it.visits } ?: 0L }
-            val maximum = ReadingRules.chartMaximum(durations, metric == "Tempo")
-            Caption(if (metric == "Tempo") "Escala: 0–${maximum / 60000} minutos" else "Escala: 0–$maximum páginas visitadas")
+            val maximum = if (metric == "Tempo") preferences.chartMinutes * 60000L else preferences.chartPages.toLong()
+            Caption(if (metric == "Tempo") "Escala: 0–${maximum / 60000} minutos" else "Escala: 0–$maximum páginas contabilizadas")
             Row(
                 Modifier.fillMaxWidth().padding(top = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -380,7 +399,7 @@ fun SoftStats(
                 week.forEachIndexed { index, date ->
                     Column(
                         Modifier.weight(1f).semantics {
-                            contentDescription = if (metric == "Tempo") "$date: ${durations[index]/60000} minutos" else "$date: ${durations[index]} páginas visitadas"
+                            contentDescription = if (metric == "Tempo") "$date: ${durations[index]/60000} minutos" else "$date: ${durations[index]} páginas contabilizadas"
                         },
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
@@ -394,7 +413,7 @@ fun SoftStats(
                                         (if (durations[index] == 0L) 0f
                                             else
                                                 (durations[index].toFloat() / maximum * 88f)
-                                                    .coerceAtLeast(0f))
+                                                    .coerceIn(0f, 88f))
                                             .dp
                                     )
                                     .clip(RoundedCornerShape(6.dp))
@@ -403,6 +422,7 @@ fun SoftStats(
                                         else Muted.copy(alpha = .45f)
                                     )
                             )
+                            if (durations[index] > maximum) Text("↑", Modifier.align(Alignment.TopEnd), color = Ink, fontSize = 12.sp)
                         }
                         Caption(
                             date.dayOfWeek.getDisplayName(
@@ -414,6 +434,10 @@ fun SoftStats(
                     }
                 }
             }
+            val exceeded = week.zip(durations).filter { it.second > maximum }
+            if (exceeded.isNotEmpty()) Caption("Acima da escala (↑): " + exceeded.joinToString { (date, value) ->
+                "${date.dayOfMonth}/${date.monthValue}: " + if (metric == "Tempo") "${value / 60000}min ${value % 60000 / 1000}s" else "$value páginas"
+            })
             if (durations.all { it == 0L })
                 Caption("Nenhuma leitura registrada nesta semana.", Modifier.padding(top = 12.dp))
         }
@@ -421,7 +445,7 @@ fun SoftStats(
         GoalPanel(workspace, days, goals)
         Spacer(Modifier.height(24.dp))
         HeatMap(days, sessions)
-        Caption("$unique páginas únicas com permanência registrada nesta versão.", Modifier.padding(top = 12.dp))
+        Caption("$unique páginas únicas lidas (acumulado). Páginas contabilizadas contam cada página uma vez por dia, após 5 segundos.", Modifier.padding(top = 12.dp))
         Row(
             Modifier.padding(vertical = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -430,18 +454,19 @@ fun SoftStats(
             ReadingStatsCard("PDFs na biblioteca", "${books.size}", Modifier.weight(1f))
         }
         SoftCard(Modifier.fillMaxWidth()) {
-            Text("Sua biblioteca por categoria", color = Ink, fontWeight = FontWeight.Medium)
+            CardTitle("Sua biblioteca por categoria")
             Caption(
                 "Quantidade de PDFs · não representa tempo de leitura",
                 Modifier.padding(top = 4.dp, bottom = 16.dp),
             )
             if (books.isEmpty()) Caption("Importe um PDF para começar.")
-            else
+            else {
+                val categoryNames = groups.filter { it.kind == "categories" }.associate { it.id to it.name }
+                val byBook = categoryLinks.groupBy({ it.bookId }, { it.categoryId })
+                // A PDF in several categories is counted once in each of them.
                 books
-                    .groupingBy { b ->
-                        groups.firstOrNull { it.id == b.category && it.kind == "categories" }?.name
-                            ?: "Sem categoria"
-                    }
+                    .flatMap { b -> byBook[b.id].orEmpty().mapNotNull { categoryNames[it] }.ifEmpty { listOf("Sem categoria") } }
+                    .groupingBy { it }
                     .eachCount()
                     .entries
                     .sortedByDescending { it.value }
@@ -468,6 +493,7 @@ fun SoftStats(
                             trackColor = LocalVisual.current.secondary,
                         )
                     }
+            }
         }
         Caption(
             "O tempo é registrado somente com uma página renderizada e o leitor em primeiro plano. Nas novas leituras, cada página conta uma vez por dia, após 5 segundos. Dados locais neste celular.",

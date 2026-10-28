@@ -36,7 +36,7 @@ val demoNames =
 val LocalBottomNavClearance = staticCompositionLocalOf { 0.dp }
 
 @Composable
-fun LottanApp(vm: LibraryViewModel) {
+fun LottanApp(vm: LibraryViewModel, incomingUri: android.net.Uri? = null, incomingHandled: () -> Unit = {}) {
     val catalog by vm.catalog.collectAsStateWithLifecycle()
     val duplicate by vm.duplicate.collectAsStateWithLifecycle()
     val prefs by vm.prefs.collectAsStateWithLifecycle()
@@ -47,18 +47,41 @@ fun LottanApp(vm: LibraryViewModel) {
     val days by vm.days.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
+    val animationsOn = LocalAnimations.current
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route?.substringBefore("?") ?: "home"
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
-            it?.let { uri -> vm.import(uri) }
+            it?.let { uri -> vm.prepareImport(uri) }
         }
     fun go(page: String) {
         nav.navigate(page) { launchSingleTop = true }
     }
     fun back() {
         if (!nav.popBackStack()) go("home")
+    }
+    var showImportNotice by rememberSaveable { mutableStateOf(false) }
+    var seenNoticeHere by rememberSaveable { mutableStateOf(false) }
+    var pendingImportUri by rememberSaveable { mutableStateOf<android.net.Uri?>(null) }
+    var returnToImport by rememberSaveable { mutableStateOf(false) }
+    fun continueImport() {
+        val uri = pendingImportUri
+        pendingImportUri = null
+        showImportNotice = false
+        if (uri != null) vm.import(uri) else picker.launch(arrayOf("application/pdf"))
+    }
+    fun requestImport(uri: android.net.Uri? = null) {
+        pendingImportUri = uri
+        if (prefs.importNoticeVersion >= ImportNotice.VERSION || seenNoticeHere) continueImport()
+        else {
+            seenNoticeHere = true
+            showImportNotice = true
+            vm.run { vm.preferences.noticePresented(ImportNotice.VERSION) }
+        }
+    }
+    LaunchedEffect(incomingUri, ready) {
+        if (ready && incomingUri != null) { requestImport(incomingUri); incomingHandled() }
     }
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(message) {
@@ -73,10 +96,17 @@ fun LottanApp(vm: LibraryViewModel) {
         }
         return
     }
+    if (showImportNotice) AlertDialog(
+        onDismissRequest = { showImportNotice = false; pendingImportUri = null },
+        title = { Text(ImportNotice.TITLE) },
+        text = { Text(ImportNotice.TEXT) },
+        confirmButton = { TextButton({ continueImport() }) { Text("Continuar") } },
+        dismissButton = { TextButton({ showImportNotice = false; returnToImport = true; go("transparency") }) { Text("Ler regras completas") } },
+    )
     duplicate?.let { (uri, existing) ->
         AlertDialog(onDismissRequest = { vm.duplicate.value = null }, title = { Text("PDF duplicado") }, text = { Text("Este arquivo já está salvo. Deseja abrir o existente ou importar outra cópia?") },
             confirmButton = { TextButton({ vm.duplicate.value = null; go("book/$existing") }) { Text("Abrir existente") } },
-            dismissButton = { Row { TextButton({ vm.duplicate.value = null }) { Text("Cancelar") }; TextButton({ vm.duplicate.value = null; vm.import(uri, true) }) { Text("Outra cópia") } } })
+            dismissButton = { Row { TextButton({ vm.duplicate.value = null }) { Text("Cancelar") }; TextButton({ vm.duplicate.value = null; if (vm.duplicateForPreview) vm.prepareImport(uri, true) else vm.import(uri, true) }) { Text("Outra cópia") } } })
     }
     val usesFloatingNav = route in listOf("home", "library", "explore", "stats", "search")
     val density = LocalDensity.current
@@ -86,14 +116,17 @@ fun LottanApp(vm: LibraryViewModel) {
         .asPaddingValues().calculateBottomPadding()
     var navigationHeightPx by remember { mutableIntStateOf(0) }
     val navigationHeight = with(density) { navigationHeightPx.toDp() }
-    val safeInsets = if (usesFloatingNav)
-        WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+    // The reader draws edge to edge: its own background (Conforto de leitura) must fill the areas behind the
+    // system bars, so the reader applies the insets itself instead of the shell padding them with the theme colour.
+    val readerFullBleed = route == "reader/{id}"
+    val safeInsets = if (readerFullBleed) WindowInsets(0, 0, 0, 0)
+    else if (usesFloatingNav) WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     else WindowInsets.safeDrawing
     CompositionLocalProvider(LocalBottomNavClearance provides if (showBottomNav) navigationHeight else 0.dp) {
     Background(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().windowInsetsPadding(safeInsets).imePadding()) {
+        Box(Modifier.fillMaxSize().windowInsetsPadding(safeInsets).then(if (readerFullBleed) Modifier else Modifier.imePadding())) {
             Box(
-                Modifier.widthIn(max = if (route == "library") 840.dp else 600.dp)
+                Modifier.widthIn(max = if (readerFullBleed) Dp.Unspecified else if (route == "library") 840.dp else 600.dp)
                     .fillMaxWidth()
                     .fillMaxHeight()
                     .align(Alignment.TopCenter)
@@ -103,11 +136,11 @@ fun LottanApp(vm: LibraryViewModel) {
                         nav,
                         startDestination = if (prefs.entered) "home" else "welcome",
                         enterTransition = {
-                            fadeIn(tween(190)) + slideInVertically(tween(190)) { 6 }
+                            if (animationsOn) fadeIn(tween(190)) + slideInVertically(tween(190)) { 6 } else EnterTransition.None
                         },
-                        exitTransition = { fadeOut(tween(100)) },
-                        popEnterTransition = { fadeIn(tween(190)) },
-                        popExitTransition = { fadeOut(tween(100)) },
+                        exitTransition = { if (animationsOn) fadeOut(tween(100)) else ExitTransition.None },
+                        popEnterTransition = { if (animationsOn) fadeIn(tween(190)) else EnterTransition.None },
+                        popExitTransition = { if (animationsOn) fadeOut(tween(100)) else ExitTransition.None },
                     ) {
                         composable("welcome") {
                             Page {
@@ -140,7 +173,7 @@ fun LottanApp(vm: LibraryViewModel) {
                             SoftHome(
                                 books,
                                 busy,
-                                { picker.launch(arrayOf("application/pdf")) },
+                                { go("import") },
                                 ::go,
                                 workspace, days, vm,
                             ) { id ->
@@ -160,11 +193,24 @@ fun LottanApp(vm: LibraryViewModel) {
                             LibraryScreen(
                                 books,
                                 busy,
-                                { picker.launch(arrayOf("application/pdf")) },
+                                { go("import") },
                                 { back() },
                                 ::go,
                                 origin, vm, workspace.pinned,
                             )
+                        }
+                        composable("folder/new") { FolderEditorScreen(vm, null) { back() } }
+                        composable("folder/{id}/edit") {
+                            val folder = groups.firstOrNull { group -> group.id == it.arguments?.getString("id") && group.kind == "folders" }
+                            if (folder != null) FolderEditorScreen(vm, folder) { back() }
+                            else Page { Top("Editar pasta", { back() }, {}); Caption("Esta pasta não está disponível.") }
+                        }
+                        composable("folder/{id}") {
+                            FolderLibraryScreen(it.arguments?.getString("id") ?: "", vm, books, { back() }, ::go, { go("import") }, workspace.pinned, busy)
+                        }
+                        composable("book-folders/{id}") {
+                            val id = it.arguments?.getString("id") ?: ""
+                            AssignFoldersDialog(setOf(id), vm) { back() }
                         }
                         composable("book/{id}") {
                             val id = it.arguments?.getString("id") ?: ""
@@ -205,13 +251,16 @@ fun LottanApp(vm: LibraryViewModel) {
                             EditorialDetails(catalog.publications.firstOrNull { p -> p.id == id }, catalog, { back() })
                         }
                         composable("stats") {
-                            SoftStats(books, days, groups, { back() }, { go("menu") }, workspace, vm) { go("goals") }
+                            SoftStats(books, days, groups, { back() }, { go("menu") }, workspace, vm, scale = { go("goals?scale=true") }) { go("goals") }
                         }
-                        composable("goals") { GoalsScreen(vm, workspace) { back() } }
+                        composable("goals?scale={scale}", arguments = listOf(androidx.navigation.navArgument("scale") { type = androidx.navigation.NavType.BoolType; defaultValue = false })) {
+                            GoalsScreen(vm, workspace, it.arguments?.getBoolean("scale") ?: false) { back() }
+                        }
                         composable("organize") {
-                            OrganizeScreen(vm, books, groups, { back() }, { go("menu") }) {
-                                go("reader/$it")
-                            }
+                            OrganizeScreen(vm, books, groups, { back() }, { go("menu") }, { go("reader/$it") }, ::go)
+                        }
+                        composable("category/new") {
+                            CategoryCreateScreen(vm, books, groups, { back() }, { nav.navigate("library?origin=all") { popUpTo("home") } })
                         }
                         composable("menu") {
                             Page {
@@ -237,6 +286,12 @@ fun LottanApp(vm: LibraryViewModel) {
                                         Checkbox(prefs.highContrast, { v -> vm.run { vm.preferences.flag("highContrast", v) } }); Text("Contraste elevado", color = Ink)
                                     }
                                 }
+                                Spacer(Modifier.height(16.dp))
+                                Glass(Modifier.fillMaxWidth().testTag("menu-animations")) {
+                                    SubtitleText("Animações do aplicativo")
+                                    Caption("Transições curtas e discretas. Também respeitam a opção de reduzir movimento do Android.")
+                                    Segments(listOf("Ativadas", "Desativadas"), if (animationsOn) "Ativadas" else "Desativadas") { v -> vm.run { vm.preferences.flag("animations", v == "Ativadas") } }
+                                }
                                 MenuSection(
                                     "LEITURA",
                                     listOf(
@@ -253,13 +308,12 @@ fun LottanApp(vm: LibraryViewModel) {
                                     ),
                                     ::go,
                                 )
-                                MenuSection("HÁBITOS DE LEITURA", listOf("Metas e registro de atividade" to "goals"), ::go)
-                                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(prefs.recordActivity, { v -> vm.run { vm.preferences.flag("recordActivity", v) } }); Text("Registrar novas sessões", color = Ink) }
-                                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(prefs.showGoals, { v -> vm.run { vm.preferences.flag("showGoals", v) } }); Text("Mostrar metas na Home", color = Ink) }
+                                MenuSection("HÁBITOS DE LEITURA", listOf("Metas de leitura, registro e exibição" to "goals"), ::go)
                                 MenuSection("DADOS E ARMAZENAMENTO", listOf("Armazenamento e miniaturas" to "storage"), ::go)
                                 MenuSection(
-                                    "SOBRE",
+                                    "SOBRE E INFORMAÇÕES LEGAIS",
                                     listOf(
+                                        "Regras e responsabilidades" to "transparency",
                                         "Ajuda e próximos passos" to "help",
                                         "Sobre a ODMANI" to "about",
                                     ),
@@ -286,30 +340,11 @@ fun LottanApp(vm: LibraryViewModel) {
                         composable("reading-settings") {
                             ReadingSettings(vm, prefs, { back() }, { go("menu") }) { go("demo/0") }
                         }
-                        composable("import") {
-                            Page {
-                                Top("Importar PDF", { back() }, { go("menu") })
-                                Glass(Modifier.fillMaxWidth().padding(vertical = 24.dp)) {
-                                    Text(
-                                        "↥",
-                                        Modifier.align(Alignment.CenterHorizontally),
-                                        fontSize = 32.sp,
-                                        color = Ink,
-                                    )
-                                    Caption(
-                                        "Escolha um PDF do seu celular\nAté 200 MB · sem senha",
-                                        Modifier.padding(vertical = 30.dp),
-                                    )
-                                    Primary(
-                                        "Escolher no dispositivo",
-                                        { picker.launch(arrayOf("application/pdf")) },
-                                        !busy,
-                                    )
-                                }
-                                Caption(
-                                    "Uma cópia do PDF ficará salva no aplicativo para leitura offline. O arquivo original não será alterado."
-                                )
+                        composable("import") { entry ->
+                            LaunchedEffect(entry.id) {
+                                if (vm.importPreview.value == null) { vm.importedBook.value = null; vm.importFolders.value = emptySet() }
                             }
+                            AddPdfScreen(vm, { requestImport() }, { back() }, ::go)
                         }
                         composable("help") {
                             Page {
@@ -321,6 +356,15 @@ fun LottanApp(vm: LibraryViewModel) {
                                     )
                                 }
                             }
+                        }
+                        composable("transparency") {
+                            androidx.activity.compose.BackHandler(enabled = returnToImport) {
+                                returnToImport = false
+                                back()
+                                showImportNotice = true
+                            }
+                            val resumeImport: (() -> Unit)? = if (returnToImport) ({ returnToImport = false; back(); showImportNotice = true }) else null
+                            TransparencyScreen(back = { if (returnToImport) { returnToImport = false; back(); showImportNotice = true } else back() }, returnToImport = resumeImport)
                         }
                         composable("about") {
                             Page {
@@ -339,7 +383,7 @@ fun LottanApp(vm: LibraryViewModel) {
                                         color = Ink,
                                     )
                                     Caption(
-                                        "Desenvolvido pela AUDMANI.\nParceira editorial — Lottan.\n\nVersão Android 2.1.0-alpha03 · nativa\n\nLeitura offline de PDFs, zoom, rotação, tema e posição salva. Seus PDFs ficam apenas neste celular.\n\nAndroid 8 ou posterior. Sem anúncios e sem conta.\n\nAtualização da versão nativa: PDFs, preferências e histórico preservados. A biblioteca do antigo MVP web não é migrada automaticamente."
+                                        "Desenvolvido pela AUDMANI.\nParceira editorial — Lottan.\n\n${if (br.com.lottan.nativeapp.BuildConfig.PUBLIC_VERSION.isBlank()) "Versão de teste ${br.com.lottan.nativeapp.BuildConfig.VERSION_NAME}" else "Versão ${br.com.lottan.nativeapp.BuildConfig.PUBLIC_VERSION}"} · nativa\n\nLeitura offline de PDFs, zoom, rotação, tema e posição salva. Seus PDFs ficam apenas neste celular.\n\nAndroid 8 ou posterior. Sem anúncios e sem conta.\n\nAtualização da versão nativa: PDFs, preferências e histórico preservados. A biblioteca do antigo MVP web não é migrada automaticamente."
                                     )
                                 }
                             }
@@ -386,7 +430,7 @@ fun LottanApp(vm: LibraryViewModel) {
                 ) {
                     Glass {
                         CircularProgressIndicator()
-                        Caption("Importando PDF…")
+                        Caption("Processando PDF…")
                     }
                 }
         }
@@ -410,8 +454,13 @@ fun normalize(text: String) =
         .lowercase()
 
 @Composable
-fun BookShelf(books: List<Book>, open: (String) -> Unit) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+fun BookShelf(books: List<Book>, modifier: Modifier = Modifier, open: (String) -> Unit) {
+    if (books.size in 1..3) BoxWithConstraints(modifier.fillMaxWidth()) {
+        val column = (maxWidth - 24.dp) / 3
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            books.forEach { b -> key(b.id) { PersonalBookCard(b, column) { open(b.id) } } }
+        }
+    } else LazyRow(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items(books, key = { it.id }) { b -> PersonalBookCard(b) { open(b.id) } }
     }
 }
@@ -446,7 +495,7 @@ fun DocumentRow(book: Book, open: () -> Unit, remove: (() -> Unit)?) {
             Modifier.weight(1f).clickable(onClick = open),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PdfCover(book, Modifier.width(48.dp).height(70.dp))
+            PdfCover(book, Modifier.width(48.dp).aspectRatio(CoverRatio))
             Spacer(Modifier.width(14.dp))
             Column {
                 Text(

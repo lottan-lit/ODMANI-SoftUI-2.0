@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import android.util.LruCache
+import br.com.lottan.nativeapp.domain.CoverFraming
 import br.com.lottan.nativeapp.domain.ThumbnailRules
 import java.io.File
 import kotlinx.coroutines.*
@@ -21,6 +22,19 @@ class ThumbnailRepository(private val context: Context, private val library: Lib
         object : LruCache<String, Bitmap>(8 * 1024 * 1024) {
             override fun sizeOf(key: String, value: Bitmap) = value.allocationByteCount
         }
+
+    /** Framing analysis is computed once per thumbnail and reused while scrolling; it never touches the PDF. */
+    private val framing = java.util.concurrent.ConcurrentHashMap<String, CoverFraming.Analysis>()
+
+    suspend fun framing(book: Book, bitmap: Bitmap): CoverFraming.Analysis = withContext(Dispatchers.Default) {
+        val key = "${book.id}-${book.bytes}-${bitmap.width}x${bitmap.height}"
+        framing[key] ?: run {
+            val width = bitmap.width; val height = bitmap.height
+            val pixels = IntArray(width * height)
+            bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+            CoverFraming.analyze(pixels, width, height).also { framing[key] = it }
+        }
+    }
 
     suspend fun load(book: Book): Bitmap =
         withContext(Dispatchers.IO) {
@@ -97,12 +111,13 @@ class ThumbnailRepository(private val context: Context, private val library: Lib
         }
 
     suspend fun clear() = withContext(Dispatchers.IO) {
-        gate.withLock { memory.evictAll(); directory.listFiles()?.forEach { check(it.delete() || !it.exists()) } }
+        gate.withLock { memory.evictAll(); framing.clear(); directory.listFiles()?.forEach { check(it.delete() || !it.exists()) } }
     }
 
     suspend fun evict(id: String) =
         withContext(Dispatchers.IO) {
             gate.withLock {
+                framing.keys.filter { it.startsWith("$id-") }.forEach { framing.remove(it) }
                 memory
                     .snapshot()
                     .keys

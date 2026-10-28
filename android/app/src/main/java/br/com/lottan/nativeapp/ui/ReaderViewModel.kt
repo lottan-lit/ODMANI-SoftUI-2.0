@@ -8,6 +8,7 @@ import br.com.lottan.nativeapp.LottanApplication
 import br.com.lottan.nativeapp.data.*
 import br.com.lottan.nativeapp.domain.ReadingRules
 import java.time.Instant
+import java.time.LocalDate
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
@@ -29,6 +30,7 @@ class ReaderViewModel(application: Application, private val id: String) :
     private var renderJob: Job? = null
     private var readingSession = ""
     private var sessionStarted = 0L
+    private var sessionDate = LocalDate.now()
     private val qualified = mutableSetOf<Int>()
     private var renderedPage = -1
     private var visitJob: Job? = null
@@ -99,15 +101,31 @@ class ReaderViewModel(application: Application, private val id: String) :
             }
     }
 
+    private fun beginSession() {
+        readingSession = java.util.UUID.randomUUID().toString()
+        sessionStarted = System.currentTimeMillis()
+        sessionDate = LocalDate.now()
+        qualified.clear()
+    }
+
     private fun qualifyPage() {
         visitJob?.cancel()
+        if (started != 0L && sessionDate != LocalDate.now()) {
+            flushClock(false)
+            beginSession()
+        }
         val target = page.value
         if (started == 0L || renderedPage != target || target in qualified) return
         visitJob = viewModelScope.launch {
             delay(5000)
             if (started != 0L && renderedPage == target && page.value == target) {
-                repository.visit(id, target, readingSession, sessionStarted)
+                if (sessionDate != LocalDate.now()) { qualifyPage(); return@launch }
+                // Qualification belongs to this screen; an accepted write must survive its exit.
+                val key = readingSession
+                val began = sessionStarted
+                val date = sessionDate
                 qualified.add(target)
+                app.background.launch { repository.visit(id, target, key, began, date) }
             }
         }
     }
@@ -115,15 +133,16 @@ class ReaderViewModel(application: Application, private val id: String) :
     @Synchronized
     fun resume() {
         if (started != 0L) return
-        if (readingSession.isEmpty()) {
-            readingSession = java.util.UUID.randomUUID().toString()
-            sessionStarted = System.currentTimeMillis()
-        }
+        beginSession()
         lastInteraction = SystemClock.elapsedRealtime()
         started = lastInteraction
         qualifyPage()
         ticker = viewModelScope.launch {
-            while (isActive) { delay(15000); flushClock(false) }
+            while (isActive) {
+                delay(15000)
+                flushClock(false)
+                if (sessionDate != LocalDate.now()) qualifyPage()
+            }
         }
     }
 

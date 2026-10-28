@@ -27,6 +27,10 @@ data class Preferences(
     val highContrast: Boolean = false,
     val librarySort: String = "Recentes",
     val libraryView: String = "grid",
+    val importNoticeVersion: Int = 0,
+    val chartPages: Int = 30,
+    val chartMinutes: Int = 30,
+    val animations: Boolean = true,
 )
 
 class PreferenceRepository(private val context: Context) {
@@ -53,8 +57,28 @@ class PreferenceRepository(private val context: Context) {
                     p[booleanPreferencesKey("highContrast")] ?: false,
                     p[stringPreferencesKey("librarySort")] ?: "Recentes",
                     p[stringPreferencesKey("libraryView")]?.takeIf { it in setOf("grid", "list") } ?: "grid",
+                    p[intPreferencesKey("importNoticeVersion")] ?: 0,
+                    (p[intPreferencesKey("chartPages")] ?: 30).coerceIn(1, 1000000),
+                    (p[intPreferencesKey("chartMinutes")] ?: 30).coerceIn(1, 525600),
+                    p[booleanPreferencesKey("animations")] ?: true,
                 )
             }
+
+    suspend fun chartScale(pages: Int, minutes: Int) {
+        require(pages in 1..1000000 && minutes in 1..525600)
+        context.store.edit { it[intPreferencesKey("chartPages")] = pages; it[intPreferencesKey("chartMinutes")] = minutes }
+    }
+
+    /** One DataStore edit: chart scale and the two display/recording switches are persisted together or not at all. */
+    suspend fun saveGoalsPage(pages: Int, minutes: Int, record: Boolean, showGoals: Boolean) {
+        require(pages in 1..1000000 && minutes in 1..525600)
+        context.store.edit {
+            it[intPreferencesKey("chartPages")] = pages; it[intPreferencesKey("chartMinutes")] = minutes
+            it[booleanPreferencesKey("recordActivity")] = record; it[booleanPreferencesKey("showGoals")] = showGoals
+        }
+    }
+
+    suspend fun noticePresented(version: Int) { context.store.edit { it[intPreferencesKey("importNoticeVersion")] = maxOf(it[intPreferencesKey("importNoticeVersion")] ?: 0, version) } }
 
     suspend fun libraryView(value: String) {
         require(value in setOf("grid", "list"))
